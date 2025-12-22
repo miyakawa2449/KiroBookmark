@@ -1,0 +1,250 @@
+# Requirements Document
+
+## Introduction
+
+AIエンジニア向けの技術ブログ管理ツール。技術系ブログの最新記事や更新を自動検知して通知し、記事に対する複数のTwitter風メモ（写真付き）を管理できる。タグ分類、ドメイン整理、検索機能、読書進捗管理を提供する。
+
+## Glossary
+
+- **Blog_Manager**: 技術ブログ管理システム全体
+- **Article_Bookmark**: 保存された技術記事のURL、タイトル、メモ、タグを含むエンティティ
+- **Update_Monitor**: 技術ブログの新記事や更新を検知するサービス
+- **Notification_Service**: 記事更新通知を配信するサービス
+- **Tweet_Memo**: 各記事に追加できるTwitter風の短いメモ（写真最大4枚付き）
+- **Tag**: 記事を分類するためのラベル
+- **Domain_Group**: 同一ドメインの記事をグループ化する機能
+- **Reading_Status**: 未読、既読、読みかけ、お気に入りの状態管理
+- **RSS_Feed**: 技術ブログのRSS/Atomフィード
+- **Feed_Detector**: 記事URLからRSSフィードを自動検出するサービス
+- **Memo_Type**: メモの種類（アイディア、感想、TODO、引用など）
+- **Full_Text_Search**: 記事本文を含む全文検索機能
+- **Export_Service**: ブックマークとメモをエクスポートする機能
+- **Recommendation_Engine**: 関連記事を自動提案するエンジン
+- **AI_Summarizer**: 記事内容を自動要約するAIサービス
+- **Tag_Recommender**: 記事内容に基づいてタグを自動推薦するAIサービス
+
+## Requirements
+
+### Requirement 1: 記事ブックマーク管理
+
+**User Story:** AIエンジニアとして、技術ブログの記事をブックマークとして保存・管理したい。後で簡単にアクセスできるようにしたい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーがURLを入力してブックマーク追加を実行する THEN THE Blog_Manager SHALL 新しい記事ブックマークを作成してリストに追加する
+2. WHEN ユーザーがブックマークを削除する THEN THE Blog_Manager SHALL そのブックマークと関連するすべてのメモをリストから完全に削除する
+3. WHEN ユーザーがブックマークリストを表示する THEN THE Blog_Manager SHALL 保存されたすべてのブックマークをタイトル、URL、サムネイル、記事公開日、経過時間と共に表示する
+4. WHEN ユーザーが表示形式を切り替える THEN THE Blog_Manager SHALL サムネイル表示とリスト表示を切り替える
+5. WHEN ユーザーがブックマークを編集する THEN THE Blog_Manager SHALL タイトルとタグの変更を保存する
+
+### Requirement 2: Twitter風メモ機能
+
+**User Story:** AIエンジニアとして、技術記事を読んで浮かんだアイディアや感想を複数のTwitter風メモとして記録したい。写真も添付して後で振り返りやすくしたい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーが記事にメモを追加する THEN THE Blog_Manager SHALL そのメモを記事に関連付けて保存し、作成日時を記録する
+2. WHEN メモが140文字を超える THEN THE Blog_Manager SHALL 入力を制限してエラーメッセージを表示する
+3. WHEN ユーザーがメモに写真を添付する THEN THE Blog_Manager SHALL 最大4枚まで写真を保存する
+4. WHEN ユーザーが既存のメモを編集する THEN THE Blog_Manager SHALL 変更されたメモを保存して更新日時を記録する
+5. WHEN ユーザーがメモを削除する THEN THE Blog_Manager SHALL そのメモと添付写真を完全に削除する
+6. WHEN 1つの記事に複数のメモが存在する THEN THE Blog_Manager SHALL 時系列順でメモを表示する
+
+### Requirement 3: タグ管理機能
+
+**User Story:** AIエンジニアとして、技術記事を複数のタグで分類したい。関連する記事をまとめて見つけやすくしたい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーが記事にタグを追加する THEN THE Blog_Manager SHALL そのタグを記事に関連付けて保存する
+2. WHEN ユーザーが複数のタグを1つの記事に設定する THEN THE Blog_Manager SHALL すべてのタグを記事に関連付ける
+3. WHEN ユーザーがタグを削除する THEN THE Blog_Manager SHALL そのタグを記事から削除する
+4. WHEN ユーザーがタグ一覧を表示する THEN THE Blog_Manager SHALL 使用頻度順でタグを表示する
+5. WHEN ユーザーがタグを編集する THEN THE Blog_Manager SHALL 関連するすべての記事のタグを更新する
+
+### Requirement 4: ドメイン整理機能
+
+**User Story:** AIエンジニアとして、同じ技術ブログ（ドメイン）の記事をまとめて管理したい。ブログごとに整理して閲覧したい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事がブックマークされる THEN THE Blog_Manager SHALL 自動的にドメインを抽出してグループ化する
+2. WHEN ユーザーがドメイン別表示を選択する THEN THE Blog_Manager SHALL 同一ドメインの記事をグループ表示する
+3. WHEN ユーザーがドメイングループを展開する THEN THE Blog_Manager SHALL そのドメインのすべての記事を表示する
+4. WHEN ユーザーがドメイン名をカスタマイズする THEN THE Blog_Manager SHALL 表示名を変更して保存する
+5. WHEN ドメイングループ内で記事を並び替える THEN THE Blog_Manager SHALL 公開日時、ブックマーク日時、タイトル順で並び替える
+
+### Requirement 5: 検索機能
+
+**User Story:** AIエンジニアとして、保存した技術記事を様々な条件で検索したい。必要な情報を素早く見つけたい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーがキーワード検索を実行する THEN THE Blog_Manager SHALL タイトル、メモ、タグ、メモ種別の内容から該当する記事を返す
+2. WHEN ユーザーがタグ検索を実行する THEN THE Blog_Manager SHALL 指定されたタグを持つすべての記事を返す
+3. WHEN ユーザーがメモ種別検索を実行する THEN THE Blog_Manager SHALL 指定されたメモ種別を持つすべての記事を返す
+4. WHEN ユーザーがドメイン検索を実行する THEN THE Blog_Manager SHALL 指定されたドメインのすべての記事を返す
+5. WHEN ユーザーが複合検索を実行する THEN THE Blog_Manager SHALL 複数の条件を組み合わせて検索結果を返す
+6. WHEN 検索結果が表示される THEN THE Blog_Manager SHALL 関連度順で結果を並び替える
+
+### Requirement 6: 読書進捗管理
+
+**User Story:** AIエンジニアとして、技術記事の読書状況を管理したい。未読、既読、読みかけ、お気に入りを区別して効率的に学習したい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事がブックマークされる THEN THE Blog_Manager SHALL 初期状態を「未読」に設定する
+2. WHEN ユーザーが記事を開く THEN THE Blog_Manager SHALL 状態を「読みかけ」に変更する
+3. WHEN ユーザーが記事を「既読」に設定する THEN THE Blog_Manager SHALL 読了日時を記録する
+4. WHEN ユーザーが記事を「お気に入り」に設定する THEN THE Blog_Manager SHALL お気に入りフラグを設定する
+5. WHEN ユーザーが読書状況でフィルタリングする THEN THE Blog_Manager SHALL 指定された状態の記事のみを表示する
+6. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の読書状況を視覚的に区別して表示する
+
+### Requirement 7: 時間経過表示
+
+**User Story:** AIエンジニアとして、記事が公開されてからの経過時間を確認したい。新しい記事を優先的に読む判断材料にしたい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の公開日からの経過時間を表示する
+2. WHEN 経過時間が24時間以内 THEN THE Blog_Manager SHALL 「X時間前」の形式で表示する
+3. WHEN 経過時間が7日以内 THEN THE Blog_Manager SHALL 「X日前」の形式で表示する
+4. WHEN 経過時間が7日を超える THEN THE Blog_Manager SHALL 公開日付を表示する
+5. WHEN 経過時間が短い記事 THEN THE Blog_Manager SHALL 視覚的に強調表示する
+
+### Requirement 8: 更新検知・通知機能
+
+**User Story:** AIエンジニアとして、フォローしている技術ブログの新記事や既存記事の更新を自動で検知して通知を受け取りたい。最新の技術情報を見逃さないようにしたい。
+
+#### Acceptance Criteria
+
+1. WHEN Update_Monitor が技術ブログをチェックする THEN THE Update_Monitor SHALL 新記事の公開や既存記事の更新を検出する
+2. WHEN 新記事が検出される THEN THE Update_Monitor SHALL 新記事を自動的にブックマークリストに追加する
+3. WHEN 既存記事の更新が検出される THEN THE Update_Monitor SHALL 更新フラグを設定して通知をトリガーする
+4. WHEN 更新チェックが失敗する THEN THE Update_Monitor SHALL エラーをログに記録して次回のチェックを継続する
+5. THE Update_Monitor SHALL 各ブログを定期的（1時間ごと）にチェックする
+6. WHEN ユーザーが手動で更新チェックを実行する THEN THE Update_Monitor SHALL 即座にすべてのブログをチェックする
+
+### Requirement 9: 通知機能
+
+**User Story:** AIエンジニアとして、技術ブログの更新をiPhoneとMacの両方で通知を受け取りたい。どのデバイスを使っていても最新情報を得られるようにしたい。
+
+#### Acceptance Criteria
+
+1. WHEN 新記事や更新が検知される THEN THE Notification_Service SHALL iPhoneとMacの両方に通知を送信する
+2. WHEN 通知が送信される THEN THE Notification_Service SHALL 記事タイトル、ブログ名、更新内容の概要を含める
+3. WHEN ユーザーが通知をタップする THEN THE Blog_Manager SHALL 該当する記事の詳細画面を表示する
+4. WHEN ユーザーが通知設定を変更する THEN THE Notification_Service SHALL 新しい設定に従って通知を送信する
+5. WHEN 複数の更新が同時に発生する THEN THE Notification_Service SHALL ブログ別にグループ化して通知する
+
+### Requirement 10: ユーザーインターフェース
+
+**User Story:** AIエンジニアとして、iPhoneとMacで一貫性のある使いやすいインターフェースを使いたい。効率的に記事を管理・閲覧したい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーがアプリを起動する THEN THE Blog_Manager SHALL ブックマークリストを読み込み時間内（3秒以内）に表示する
+2. WHEN ユーザーが記事をタップする THEN THE Blog_Manager SHALL 記事をデフォルトブラウザで開く
+3. WHEN ユーザーがスワイプジェスチャーを使用する THEN THE Blog_Manager SHALL 削除、編集、読書状況変更のオプションを表示する
+4. WHEN アプリがダークモードで表示される THEN THE Blog_Manager SHALL 適切なダークテーマを適用する
+5. WHEN ユーザーが記事詳細画面を表示する THEN THE Blog_Manager SHALL 記事情報、メモ一覧、タグ、読書状況を表示する
+
+### Requirement 11: データ永続化・同期
+
+**User Story:** システム管理者として、ユーザーの記事データが安全に保存され、デバイス間で同期されるようにしたい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事やメモが作成・変更される THEN THE Blog_Manager SHALL データをローカルストレージに即座に保存する
+2. WHEN アプリが予期せず終了する THEN THE Blog_Manager SHALL 次回起動時にすべてのデータを復元する
+3. WHEN データの破損が検出される THEN THE Blog_Manager SHALL バックアップから復元を試行する
+4. WHEN ユーザーがiPhoneで記事を追加する THEN THE Blog_Manager SHALL その記事をMacにも同期する
+5. WHEN 同期中にネットワークエラーが発生する THEN THE Blog_Manager SHALL 接続回復後に自動的に同期を再開する
+
+### Requirement 12: RSS/Atomフィード自動検出
+
+**User Story:** AIエンジニアとして、記事URLを入力するだけでRSSフィードを自動検出・登録したい。手動でフィードURLを探す手間を省きたい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーが記事URLを入力する THEN THE Feed_Detector SHALL そのサイトのRSSフィードを自動検出する
+2. WHEN RSSフィードが検出される THEN THE Blog_Manager SHALL フィードを監視対象に自動追加する
+3. WHEN 自動検出が失敗する THEN THE Blog_Manager SHALL ユーザーに手動でフィードURLを入力するオプションを提供する
+4. WHEN RSS フィードに新記事が追加される THEN THE Blog_Manager SHALL 自動的に新記事をブックマークリストに追加する
+5. WHEN RSS フィードの取得に失敗する THEN THE Blog_Manager SHALL エラーをログに記録して次回の取得を継続する
+6. WHEN ユーザーがフィード一覧を表示する THEN THE Blog_Manager SHALL 登録済みフィードと最終更新日時を表示する
+7. WHEN ユーザーがフィードを削除する THEN THE Blog_Manager SHALL そのフィードの監視を停止する
+
+### Requirement 13: メモ種類分類
+
+**User Story:** AIエンジニアとして、記事に対するメモを種類別（アイディア、感想、TODO、引用など）に分類したい。目的に応じてメモを整理したい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーがメモを作成する THEN THE Blog_Manager SHALL メモの種類を選択できるオプションを提供する
+2. WHEN ユーザーがメモ種類を設定する THEN THE Blog_Manager SHALL そのメモに種類ラベルを関連付ける
+3. WHEN メモ一覧を表示する THEN THE Blog_Manager SHALL 各メモの種類を視覚的に区別して表示する
+4. WHEN ユーザーがメモ種類でフィルタリングする THEN THE Blog_Manager SHALL 指定された種類のメモのみを表示する
+5. WHEN ユーザーがカスタムメモ種類を作成する THEN THE Blog_Manager SHALL 新しい種類を保存して選択肢に追加する
+
+### Requirement 14: 全文検索機能
+
+**User Story:** AIエンジニアとして、記事のタイトルやメモだけでなく記事本文も検索対象にしたい。より詳細な情報を見つけやすくしたい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事がブックマークされる THEN THE Blog_Manager SHALL 記事本文を取得して検索インデックスに追加する
+2. WHEN ユーザーが全文検索を実行する THEN THE Blog_Manager SHALL タイトル、メモ、タグ、メモ種別、記事本文から該当する記事を返す
+3. WHEN 記事本文の取得に失敗する THEN THE Blog_Manager SHALL タイトル、メモ、タグ、メモ種別のみを検索対象とする
+4. WHEN 検索結果を表示する THEN THE Blog_Manager SHALL マッチした箇所をハイライト表示する
+5. WHEN 記事本文が更新される THEN THE Blog_Manager SHALL 検索インデックスを更新する
+
+### Requirement 15: エクスポート機能
+
+**User Story:** AIエンジニアとして、蓄積したブックマークとメモをMarkdownやJSONで出力したい。他のツールとの連携やバックアップに活用したい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーがエクスポートを実行する THEN THE Export_Service SHALL 全ブックマークとメモをMarkdown形式で出力する
+2. WHEN ユーザーがJSON形式を選択する THEN THE Export_Service SHALL 構造化されたJSONファイルを生成する
+3. WHEN エクスポート対象を絞り込む THEN THE Export_Service SHALL 指定されたタグやドメインの記事のみを出力する
+4. WHEN エクスポートファイルを生成する THEN THE Export_Service SHALL ファイル名に日付を含めて保存する
+5. WHEN エクスポートが完了する THEN THE Export_Service SHALL ユーザーにダウンロードリンクを提供する
+
+### Requirement 16: 関連記事自動提案
+
+**User Story:** AIエンジニアとして、現在閲覧している記事に関連する他の記事を自動で提案してもらいたい。関連する知識を効率的に学習したい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーが記事詳細を表示する THEN THE Recommendation_Engine SHALL 同じタグを持つ関連記事を提案する
+2. WHEN 関連記事を計算する THEN THE Recommendation_Engine SHALL タグの一致度、キーワードの類似度、ドメインの関連性を考慮する
+3. WHEN 関連記事が見つからない THEN THE Recommendation_Engine SHALL 同じドメインの他の記事を提案する
+4. WHEN 関連記事一覧を表示する THEN THE Recommendation_Engine SHALL 関連度の高い順で最大5件を表示する
+5. WHEN ユーザーが提案された記事を閲覧する THEN THE Recommendation_Engine SHALL その行動を学習して今後の提案精度を向上させる
+
+### Requirement 17: AI要約機能
+
+**User Story:** AIエンジニアとして、長い技術記事の内容を自動で要約してもらいたい。記事の要点を素早く把握して時間を節約したい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事がブックマークされる THEN THE AI_Summarizer SHALL 記事本文を解析して要約を生成する
+2. WHEN 要約が生成される THEN THE AI_Summarizer SHALL 記事の主要なポイントを3-5文で要約する
+3. WHEN 要約の生成に失敗する THEN THE AI_Summarizer SHALL エラーをログに記録して要約なしで記事を保存する
+4. WHEN ユーザーが記事詳細を表示する THEN THE Blog_Manager SHALL 要約を記事情報と共に表示する
+5. WHEN ユーザーが要約を編集する THEN THE Blog_Manager SHALL カスタム要約として保存する
+6. WHEN 記事が更新される THEN THE AI_Summarizer SHALL 新しい要約を生成して既存の要約を更新する
+
+### Requirement 18: タグ自動推薦機能
+
+**User Story:** AIエンジニアとして、記事内容に基づいて適切なタグを自動で推薦してもらいたい。手動でタグを考える時間を節約したい。
+
+#### Acceptance Criteria
+
+1. WHEN 記事がブックマークされる THEN THE Tag_Recommender SHALL 記事内容を解析して関連タグを推薦する
+2. WHEN タグ推薦が生成される THEN THE Tag_Recommender SHALL 最大5個の関連タグを提案する
+3. WHEN ユーザーがタグ推薦を表示する THEN THE Blog_Manager SHALL 推薦されたタグを選択可能な形で表示する
+4. WHEN ユーザーが推薦タグを選択する THEN THE Blog_Manager SHALL 選択されたタグを記事に追加する
+5. WHEN ユーザーが推薦タグを拒否する THEN THE Tag_Recommender SHALL その情報を学習して今後の推薦精度を向上させる
+6. WHEN 既存のタグと類似する推薦がある THEN THE Tag_Recommender SHALL 既存タグを優先して推薦する

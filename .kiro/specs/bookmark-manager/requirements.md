@@ -22,12 +22,13 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 - **Recommendation_Engine**: 関連記事を自動提案するエンジン
 - **AI_Summarizer**: 記事内容を自動要約するAIサービス
 - **Tag_Recommender**: 記事内容に基づいてタグを自動推薦するAIサービス
-- **Six_Tab_System**: 6つのタブ（New Entry, Bookmark, Todo, アイディア, 感想, その他）による記事管理システム
-- **Tab_Manager**: 6タブシステムの表示・非表示・順序を管理するサービス
+- **Two_Tab_System**: 2つのメインタブ（New Entry, Bookmark）による記事管理システム
+- **Side_Menu**: 右スワイプで表示されるメニュー（いいね、アイディア、感想、TODO、その他）
+- **Tab_Manager**: 2タブシステムとサイドメニューの表示を管理するサービス
 - **Text_Selection_Service**: WebView内でのテキスト選択・引用メモ作成を管理するサービス
-- **Swipe_Navigation**: タブ間の左右スワイプによる画面切り替え機能
-- **Dynamic_Tab_Display**: メモが存在しないタブの自動非表示機能
-- **Tab_Configuration**: ユーザーがカスタマイズ可能なタブ順序・表示設定
+- **Swipe_Navigation**: 右スワイプによるサイドメニュー表示機能
+- **Dynamic_Menu_Display**: メモが存在しないメニュー項目の自動非表示機能
+- **Menu_Configuration**: ユーザーがカスタマイズ可能なメニュー項目の順序・表示設定
 
 ## Requirements
 
@@ -40,7 +41,7 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 1. WHEN ユーザーがURLを入力してブックマーク追加を実行する THEN THE Blog_Manager SHALL 新しい記事ブックマークを作成してリストに追加する
 2. WHEN ユーザーがブックマークを削除する THEN THE Blog_Manager SHALL そのブックマークと関連するすべてのメモをリストから完全に削除する
 3. WHEN ユーザーがブックマークリストを表示する THEN THE Blog_Manager SHALL 保存されたすべてのブックマークをタイトル、URL、サムネイル、記事公開日、経過時間と共にカード形式で表示する
-4. WHEN ユーザーが6タブシステムを使用する THEN THE Blog_Manager SHALL メモ種類に応じて適切なタブに記事を表示する
+4. WHEN ユーザーが2タブシステムを使用する THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブで記事を表示する
 5. WHEN ユーザーがブックマークを編集する THEN THE Blog_Manager SHALL タイトルとタグの変更を保存する
 
 ### Requirement 2: Twitter風メモ機能
@@ -143,18 +144,19 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 4. WHEN ユーザーが通知設定を変更する THEN THE Notification_Service SHALL 新しい設定に従って通知を送信する
 5. WHEN 複数の更新が同時に発生する THEN THE Notification_Service SHALL ブログ別にグループ化して通知する
 
-### Requirement 10: ユーザーインターフェース・6タブシステム
+### Requirement 10: ユーザーインターフェース・2タブ + サイドメニューシステム
 
-**User Story:** AIエンジニアとして、iPhoneとMacで一貫性のある使いやすい6タブインターフェースを使いたい。効率的に記事を管理・閲覧したい。
+**User Story:** AIエンジニアとして、iPhoneとMacで一貫性のある使いやすい2タブ + サイドメニューインターフェースを使いたい。効率的に記事を管理・閲覧したい。
 
 #### Acceptance Criteria
 
-1. WHEN ユーザーがアプリを起動する THEN THE Blog_Manager SHALL 6タブシステムのホーム画面を読み込み時間内（3秒以内）に表示する
+1. WHEN ユーザーがアプリを起動する THEN THE Blog_Manager SHALL 2タブシステムのホーム画面を読み込み時間内（3秒以内）に表示する
 2. WHEN ユーザーが記事をタップする THEN THE Blog_Manager SHALL 記事をアプリ内WebViewで開く
-3. WHEN ユーザーがスワイプジェスチャーを使用する THEN THE Blog_Manager SHALL タブ間の切り替え、削除、編集、読書状況変更のオプションを表示する
+3. WHEN ユーザーがスワイプジェスチャーを使用する THEN THE Blog_Manager SHALL 削除、編集、読書状況変更のオプションを表示する
 4. WHEN アプリがダークモードで表示される THEN THE Blog_Manager SHALL 適切なダークテーマを適用する
 5. WHEN ユーザーが記事詳細画面を表示する THEN THE Blog_Manager SHALL 記事情報、メモ種類別一覧、タグ、読書状況を表示する
-6. WHEN ユーザーが6タブシステムを使用する THEN THE Blog_Manager SHALL タブ切り替え、スワイプナビゲーション、動的タブ表示を提供する
+6. WHEN ユーザーが2タブシステムを使用する THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブを提供する
+7. WHEN ユーザーがヘッダーを表示する THEN THE Blog_Manager SHALL 中央にアプリアイコンを表示する
 
 ### Requirement 11: データ永続化・同期
 
@@ -182,19 +184,19 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 6. WHEN ユーザーがフィード一覧を表示する THEN THE Blog_Manager SHALL 登録済みフィードと最終更新日時を表示する
 7. WHEN ユーザーがフィードを削除する THEN THE Blog_Manager SHALL そのフィードの監視を停止する
 
-### Requirement 13: メモ種類分類・6タブシステム
+### Requirement 13: メモ種類分類・サイドメニューシステム
 
-**User Story:** AIエンジニアとして、記事に対するメモを種類別（アイディア、感想、TODO、引用、その他）に分類し、6タブシステムで効率的に管理したい。メモ種類ごとに記事を整理して閲覧したい。
+**User Story:** AIエンジニアとして、記事に対するメモを種類別（アイディア、感想、TODO、引用、その他）に分類し、サイドメニューで効率的に管理したい。メモ種類ごとに記事を整理して閲覧したい。
 
 #### Acceptance Criteria
 
 1. WHEN ユーザーがメモを作成する THEN THE Blog_Manager SHALL メモの種類（アイディア、感想、TODO、引用、その他）を選択できるオプションを提供する
 2. WHEN ユーザーがメモ種類を設定する THEN THE Blog_Manager SHALL そのメモに種類ラベルを関連付ける
 3. WHEN メモ一覧を表示する THEN THE Blog_Manager SHALL 各メモの種類を視覚的に区別して表示する
-4. WHEN ユーザーが6タブシステムを使用する THEN THE Blog_Manager SHALL New Entry、Bookmark、Todo、アイディア、感想、その他の6つのタブを提供する
-5. WHEN ユーザーがメモ種類別タブを選択する THEN THE Blog_Manager SHALL 該当するメモ種類を持つ記事のみを表示する
-6. WHEN メモが存在しないタブがある THEN THE Blog_Manager SHALL そのタブを自動的に非表示にする
-7. WHEN ユーザーがタブ間をスワイプする THEN THE Blog_Manager SHALL 左右スワイプで隣接するタブに切り替える
+4. WHEN ユーザーが右スワイプする THEN THE Blog_Manager SHALL サイドメニューを表示する
+5. WHEN ユーザーがサイドメニュー項目を選択する THEN THE Blog_Manager SHALL 該当するメモ種類を持つ記事のみを表示する
+6. WHEN メモが存在しないメニュー項目がある THEN THE Blog_Manager SHALL そのメニュー項目を自動的に非表示にする
+7. WHEN ユーザーがサイドメニューを閉じる THEN THE Blog_Manager SHALL 左スワイプまたはメニュー外タップでメニューを閉じる
 
 ### Requirement 14: 全文検索機能
 
@@ -270,43 +272,43 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 5. WHEN 引用メモを表示する THEN THE Blog_Manager SHALL 引用テキストと引用元URLを視覚的に区別して表示する
 6. WHEN 選択テキストが140文字を超える THEN THE Blog_Manager SHALL テキストを適切に切り詰めて引用メモを作成する
 
-### Requirement 20: スワイプナビゲーション機能
+### Requirement 20: サイドメニューナビゲーション機能
 
-**User Story:** AIエンジニアとして、6タブ間を直感的なスワイプ操作で素早く切り替えたい。効率的にメモ種類別の記事を閲覧したい。
-
-#### Acceptance Criteria
-
-1. WHEN ユーザーが画面を左にスワイプする THEN THE Blog_Manager SHALL 次のタブに切り替える
-2. WHEN ユーザーが画面を右にスワイプする THEN THE Blog_Manager SHALL 前のタブに切り替える
-3. WHEN 最初のタブで右スワイプする THEN THE Blog_Manager SHALL 最後のタブに移動する
-4. WHEN 最後のタブで左スワイプする THEN THE Blog_Manager SHALL 最初のタブに移動する
-5. WHEN スワイプ操作中 THEN THE Blog_Manager SHALL スムーズなアニメーションでタブ切り替えを表示する
-6. WHEN 非表示タブがある THEN THE Blog_Manager SHALL 表示されているタブのみをスワイプ対象とする
-7. WHEN ユーザーがスワイプ操作を無効にする THEN THE Blog_Manager SHALL タップによるタブ切り替えのみを有効にする
-
-### Requirement 21: 動的タブ表示機能
-
-**User Story:** AIエンジニアとして、メモが存在しないタブは自動的に非表示にして、使用中のタブのみを表示したい。UIをすっきりと保ちたい。
+**User Story:** AIエンジニアとして、右スワイプでサイドメニューを表示して、メモ種類別の記事を素早く閲覧したい。効率的にメモ種類別の記事を管理したい。
 
 #### Acceptance Criteria
 
-1. WHEN 特定のメモ種類の記事が存在しない THEN THE Blog_Manager SHALL 該当するタブを自動的に非表示にする
-2. WHEN 新しいメモが追加される THEN THE Blog_Manager SHALL 対応するタブを自動的に表示する
-3. WHEN 最後のメモが削除される THEN THE Blog_Manager SHALL 該当するタブを自動的に非表示にする
-4. WHEN New EntryタブとBookmarkタブ THEN THE Blog_Manager SHALL 常に表示状態を維持する
-5. WHEN タブの表示状態が変更される THEN THE Blog_Manager SHALL リアルタイムでタブバーを更新する
-6. WHEN 全てのメモ種類タブが非表示 THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブのみを表示する
+1. WHEN ユーザーが画面を右にスワイプする THEN THE Blog_Manager SHALL サイドメニューを表示する
+2. WHEN ユーザーが画面を左にスワイプする THEN THE Blog_Manager SHALL サイドメニューを閉じる
+3. WHEN ユーザーがメニュー外をタップする THEN THE Blog_Manager SHALL サイドメニューを閉じる
+4. WHEN サイドメニューが表示される THEN THE Blog_Manager SHALL スムーズなアニメーションでメニューを表示する
+5. WHEN サイドメニューが閉じられる THEN THE Blog_Manager SHALL スムーズなアニメーションでメニューを閉じる
+6. WHEN 非表示メニュー項目がある THEN THE Blog_Manager SHALL 表示されているメニュー項目のみを表示する
+7. WHEN ユーザーがスワイプ操作を無効にする THEN THE Blog_Manager SHALL メニューボタンによる表示のみを有効にする
 
-### Requirement 22: タブ設定・カスタマイズ機能
+### Requirement 21: 動的メニュー表示機能
 
-**User Story:** AIエンジニアとして、6タブの表示順序や表示/非表示を自分の使い方に合わせてカスタマイズしたい。個人の作業フローに最適化したい。
+**User Story:** AIエンジニアとして、メモが存在しないメニュー項目は自動的に非表示にして、使用中のメニュー項目のみを表示したい。UIをすっきりと保ちたい。
 
 #### Acceptance Criteria
 
-1. WHEN ユーザーが設定画面を開く THEN THE Blog_Manager SHALL タブ設定オプションを表示する
-2. WHEN ユーザーがタブ順序を変更する THEN THE Blog_Manager SHALL ドラッグ&ドロップでタブの並び順を変更できる
-3. WHEN ユーザーがタブの表示/非表示を設定する THEN THE Blog_Manager SHALL 各タブの表示状態を個別に制御できる
-4. WHEN タブ設定が変更される THEN THE Blog_Manager SHALL 設定を永続化して次回起動時に反映する
-5. WHEN ユーザーがスワイプ操作の有効/無効を設定する THEN THE Blog_Manager SHALL スワイプナビゲーションの動作を制御する
-6. WHEN ユーザーが自動非表示機能を無効にする THEN THE Blog_Manager SHALL 全てのタブを常時表示する
-7. WHEN 設定をデフォルトに戻す THEN THE Blog_Manager SHALL 初期のタブ順序と設定に復元する
+1. WHEN 特定のメモ種類の記事が存在しない THEN THE Blog_Manager SHALL 該当するメニュー項目を自動的に非表示にする
+2. WHEN 新しいメモが追加される THEN THE Blog_Manager SHALL 対応するメニュー項目を自動的に表示する
+3. WHEN 最後のメモが削除される THEN THE Blog_Manager SHALL 該当するメニュー項目を自動的に非表示にする
+4. WHEN いいね（お気に入り）記事が存在する THEN THE Blog_Manager SHALL いいねメニュー項目を表示する
+5. WHEN メニュー項目の表示状態が変更される THEN THE Blog_Manager SHALL リアルタイムでメニューを更新する
+6. WHEN 全てのメモ種類メニュー項目が非表示 THEN THE Blog_Manager SHALL サイドメニューに「メモがありません」と表示する
+
+### Requirement 22: サイドメニュー設定・カスタマイズ機能
+
+**User Story:** AIエンジニアとして、サイドメニュー項目の表示順序や表示/非表示を自分の使い方に合わせてカスタマイズしたい。個人の作業フローに最適化したい。
+
+#### Acceptance Criteria
+
+1. WHEN ユーザーが設定画面を開く THEN THE Blog_Manager SHALL サイドメニュー設定オプションを表示する
+2. WHEN ユーザーがメニュー項目順序を変更する THEN THE Blog_Manager SHALL ドラッグ&ドロップでメニュー項目の並び順を変更できる
+3. WHEN ユーザーがメニュー項目の表示/非表示を設定する THEN THE Blog_Manager SHALL 各メニュー項目の表示状態を個別に制御できる
+4. WHEN メニュー設定が変更される THEN THE Blog_Manager SHALL 設定を永続化して次回起動時に反映する
+5. WHEN ユーザーがスワイプ操作の有効/無効を設定する THEN THE Blog_Manager SHALL サイドメニュー表示の動作を制御する
+6. WHEN ユーザーが自動非表示機能を無効にする THEN THE Blog_Manager SHALL 全てのメニュー項目を常時表示する
+7. WHEN 設定をデフォルトに戻す THEN THE Blog_Manager SHALL 初期のメニュー項目順序と設定に復元する

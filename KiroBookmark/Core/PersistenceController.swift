@@ -24,6 +24,8 @@ struct PersistenceController {
         bookmark.url = "https://example.com/article"
         bookmark.domain = "example.com"
         bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
 
         let tag = Tag(context: viewContext)
         tag.id = UUID()
@@ -32,9 +34,19 @@ struct PersistenceController {
 
         bookmark.addToTags(tag)
 
+        // Create sample favorite blog
+        let favoriteBlog = FavoriteBlog(context: viewContext)
+        favoriteBlog.id = UUID()
+        favoriteBlog.domain = "example.com"
+        favoriteBlog.name = "Example Blog"
+        favoriteBlog.addedDate = Date()
+        bookmark.favoriteBlog = favoriteBlog
+
         let memo = TweetMemo(context: viewContext)
         memo.id = UUID()
         memo.content = "This is a sample memo"
+        memo.memoType = MemoType.idea.rawValue
+        memo.isQuote = false
         memo.createdDate = Date()
         memo.updatedDate = Date()
         memo.bookmark = bookmark
@@ -58,7 +70,7 @@ struct PersistenceController {
 
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
-                // TODO: Refactor later (Date: 2024-12-22)
+                // TODO: Refactor later (Date: 2024-12-24)
                 // Replace fatalError with proper error handling
                 fatalError("Core Data store failed: \(error), \(error.userInfo)")
             }

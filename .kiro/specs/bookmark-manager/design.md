@@ -272,54 +272,81 @@ protocol RecommendationEngineProtocol {
 }
 ```
 
-### 11. Tab Manager (6タブシステム)
+### 11. Tab Manager (2タブ + サイドメニューシステム)
 
 ```swift
 protocol TabManagerProtocol {
-    func getVisibleTabs() async -> [TabType]
-    func getArticlesForTab(_ tabType: TabType) async -> [ArticleBookmark]
-    func updateTabVisibility() async
-    func getTabOrder() -> [TabType]
-    func setTabOrder(_ order: [TabType]) async throws
-    func getTabConfiguration() -> TabConfiguration
-    func updateTabConfiguration(_ config: TabConfiguration) async throws
+    func getMainTabs() -> [MainTabType]
+    func getSideMenuItems() async -> [SideMenuItem]
+    func getArticlesForMainTab(_ tabType: MainTabType) async -> [ArticleBookmark]
+    func getArticlesForMenuItem(_ menuItem: SideMenuItem) async -> [ArticleBookmark]
+    func updateMenuVisibility() async
+    func getMenuConfiguration() -> MenuConfiguration
+    func updateMenuConfiguration(_ config: MenuConfiguration) async throws
 }
 
-enum TabType: String, CaseIterable, Codable {
+enum MainTabType: String, CaseIterable, Codable {
     case newEntry = "newEntry"
     case bookmark = "bookmark"
-    case todo = "todo"
-    case idea = "idea"
-    case thought = "thought"
-    case other = "other"
     
     var displayName: String {
         switch self {
         case .newEntry: return "New Entry"
         case .bookmark: return "Bookmark"
-        case .todo: return "Todo"
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .newEntry: return "newspaper"
+        case .bookmark: return "bookmark"
+        }
+    }
+}
+
+enum SideMenuItem: String, CaseIterable, Codable {
+    case favorite = "favorite"
+    case idea = "idea"
+    case thought = "thought"
+    case todo = "todo"
+    case other = "other"
+    
+    var displayName: String {
+        switch self {
+        case .favorite: return "いいね"
         case .idea: return "アイディア"
         case .thought: return "感想"
+        case .todo: return "TODO"
         case .other: return "その他"
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .favorite: return "heart.fill"
+        case .idea: return "lightbulb"
+        case .thought: return "text.bubble"
+        case .todo: return "list.bullet"
+        case .other: return "ellipsis"
         }
     }
     
     var associatedMemoType: MemoType? {
         switch self {
-        case .newEntry, .bookmark: return nil
-        case .todo: return .todo
+        case .favorite: return nil
         case .idea: return .idea
         case .thought: return .thought
+        case .todo: return .todo
         case .other: return .other
         }
     }
 }
 
-struct TabConfiguration {
-    var tabOrder: [TabType]
-    var hiddenTabs: Set<TabType>
+struct MenuConfiguration {
+    var menuOrder: [SideMenuItem]
+    var hiddenMenuItems: Set<SideMenuItem>
     var swipeEnabled: Bool
-    var autoHideEmptyTabs: Bool
+    var autoHideEmptyItems: Bool
 }
 ```
 
@@ -347,13 +374,14 @@ struct SelectedText {
 }
 ```
 
-### 13. Swipe Navigation Service
+### 13. Swipe Navigation Service (サイドメニュー用)
 
 ```swift
 protocol SwipeNavigationServiceProtocol {
-    func handleSwipeGesture(_ direction: SwipeDirection, currentTab: TabType) -> TabType?
-    func getNextTab(from currentTab: TabType, visibleTabs: [TabType]) -> TabType?
-    func getPreviousTab(from currentTab: TabType, visibleTabs: [TabType]) -> TabType?
+    func handleSwipeGesture(_ direction: SwipeDirection) -> SwipeNavigationResult
+    func isSideMenuOpen() -> Bool
+    func openSideMenu() async
+    func closeSideMenu() async
     func isSwipeEnabled() -> Bool
     func setSwipeEnabled(_ enabled: Bool) async throws
     func getSwipeThreshold() -> CGFloat
@@ -363,31 +391,45 @@ enum SwipeDirection {
     case left
     case right
 }
+
+struct SwipeNavigationResult {
+    var shouldOpenMenu: Bool
+    var shouldCloseMenu: Bool
+    var shouldAnimate: Bool
+    var animationDuration: Double
+    
+    init(shouldOpenMenu: Bool = false, shouldCloseMenu: Bool = false, shouldAnimate: Bool = true, animationDuration: Double = 0.3) {
+        self.shouldOpenMenu = shouldOpenMenu
+        self.shouldCloseMenu = shouldCloseMenu
+        self.shouldAnimate = shouldAnimate
+        self.animationDuration = animationDuration
+    }
+}
 ```
 
-### 14. Dynamic Tab Display Service
+### 14. Dynamic Menu Display Service
 
 ```swift
-protocol DynamicTabDisplayServiceProtocol {
-    func updateTabVisibility() async
-    func shouldShowTab(_ tabType: TabType) async -> Bool
-    func getVisibleTabs() async -> [TabType]
-    func getArticleCount(for tabType: TabType) async -> Int
+protocol DynamicMenuDisplayServiceProtocol {
+    func updateMenuVisibility() async
+    func shouldShowMenuItem(_ menuItem: SideMenuItem) async -> Bool
+    func getVisibleMenuItems() async -> [SideMenuItem]
+    func getArticleCount(for menuItem: SideMenuItem) async -> Int
     func isAutoHideEnabled() -> Bool
     func setAutoHideEnabled(_ enabled: Bool) async throws
 }
 ```
 
-### 15. Tab Configuration Service
+### 15. Menu Configuration Service
 
 ```swift
-protocol TabConfigurationServiceProtocol {
-    func getTabConfiguration() async -> TabConfiguration
-    func updateTabConfiguration(_ config: TabConfiguration) async throws
-    func reorderTabs(_ newOrder: [TabType]) async throws
-    func setTabVisibility(_ tabType: TabType, visible: Bool) async throws
+protocol MenuConfigurationServiceProtocol {
+    func getMenuConfiguration() async -> MenuConfiguration
+    func updateMenuConfiguration(_ config: MenuConfiguration) async throws
+    func reorderMenuItems(_ newOrder: [SideMenuItem]) async throws
+    func setMenuItemVisibility(_ menuItem: SideMenuItem, visible: Bool) async throws
     func resetToDefaultConfiguration() async throws
-    func validateTabConfiguration(_ config: TabConfiguration) -> Bool
+    func validateMenuConfiguration(_ config: MenuConfiguration) -> Bool
 }
 ```
 
@@ -439,7 +481,7 @@ class TweetMemo {
     var updatedDate: Date
     var imageURLs: [URL]
     
-    // テキスト選択関連（6タブシステム対応）
+    // テキスト選択関連（2タブ + サイドメニューシステム対応）
     var isQuote: Bool
     var sourceURL: URL?
     var selectedText: String?
@@ -554,18 +596,18 @@ class ExportHistory {
 @Model
 class TabSettings {
     @Attribute(.unique) var id: UUID
-    var tabOrder: [String] // TabType.rawValue の配列
-    var hiddenTabs: [String] // 非表示タブのrawValue配列
+    var menuOrder: [String] // SideMenuItem.rawValue の配列
+    var hiddenMenuItems: [String] // 非表示メニュー項目のrawValue配列
     var swipeEnabled: Bool
-    var autoHideEmptyTabs: Bool
+    var autoHideEmptyItems: Bool
     var lastUpdated: Date
     
     init() {
         self.id = UUID()
-        self.tabOrder = TabType.allCases.map { $0.rawValue }
-        self.hiddenTabs = []
+        self.menuOrder = SideMenuItem.allCases.map { $0.rawValue }
+        self.hiddenMenuItems = []
         self.swipeEnabled = true
-        self.autoHideEmptyTabs = true
+        self.autoHideEmptyItems = true
         self.lastUpdated = Date()
     }
 }
@@ -609,19 +651,19 @@ class SwipeGestureSettings {
     }
 }
 
-// 動的タブ表示設定
+// 動的メニュー表示設定
 @Model
-class DynamicTabDisplaySettings {
+class DynamicMenuDisplaySettings {
     @Attribute(.unique) var id: UUID
-    var autoHideEmptyTabs: Bool
-    var minimumVisibleTabs: Int
+    var autoHideEmptyItems: Bool
+    var minimumVisibleItems: Int
     var updateInterval: Double // 更新間隔（秒）
     var lastUpdated: Date
     
     init() {
         self.id = UUID()
-        self.autoHideEmptyTabs = true
-        self.minimumVisibleTabs = 2 // New Entry + Bookmark
+        self.autoHideEmptyItems = true
+        self.minimumVisibleItems = 0 // サイドメニューは全て非表示可能
         self.updateInterval = 1.0
         self.lastUpdated = Date()
     }
@@ -665,7 +707,7 @@ enum MemoType: String, CaseIterable, Codable {
         }
     }
     
-    var tabType: TabType? {
+    var menuItem: SideMenuItem? {
         switch self {
         case .idea: return .idea
         case .thought: return .thought
@@ -677,35 +719,17 @@ enum MemoType: String, CaseIterable, Codable {
 
 enum ViewMode: String, CaseIterable {
     case card = "card"
-    // リスト表示は6タブシステムでは削除
+    // リスト表示は2タブ + サイドメニューシステムでは削除
 }
 
-enum TabType: String, CaseIterable, Codable {
+enum MainTabType: String, CaseIterable, Codable {
     case newEntry = "newEntry"
     case bookmark = "bookmark"
-    case todo = "todo"
-    case idea = "idea"
-    case thought = "thought"
-    case other = "other"
     
     var displayName: String {
         switch self {
         case .newEntry: return "New Entry"
         case .bookmark: return "Bookmark"
-        case .todo: return "Todo"
-        case .idea: return "アイディア"
-        case .thought: return "感想"
-        case .other: return "その他"
-        }
-    }
-    
-    var associatedMemoType: MemoType? {
-        switch self {
-        case .newEntry, .bookmark: return nil
-        case .todo: return .todo
-        case .idea: return .idea
-        case .thought: return .thought
-        case .other: return .other
         }
     }
     
@@ -713,17 +737,44 @@ enum TabType: String, CaseIterable, Codable {
         switch self {
         case .newEntry: return "newspaper"
         case .bookmark: return "bookmark"
-        case .todo: return "list.bullet"
+        }
+    }
+}
+
+enum SideMenuItem: String, CaseIterable, Codable {
+    case favorite = "favorite"
+    case idea = "idea"
+    case thought = "thought"
+    case todo = "todo"
+    case other = "other"
+    
+    var displayName: String {
+        switch self {
+        case .favorite: return "いいね"
+        case .idea: return "アイディア"
+        case .thought: return "感想"
+        case .todo: return "TODO"
+        case .other: return "その他"
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .favorite: return "heart.fill"
         case .idea: return "lightbulb"
-        case .thought: return "heart"
+        case .thought: return "text.bubble"
+        case .todo: return "list.bullet"
         case .other: return "ellipsis"
         }
     }
     
-    var isAlwaysVisible: Bool {
+    var associatedMemoType: MemoType? {
         switch self {
-        case .newEntry, .bookmark: return true
-        default: return false
+        case .favorite: return nil
+        case .idea: return .idea
+        case .thought: return .thought
+        case .todo: return .todo
+        case .other: return .other
         }
     }
 }
@@ -793,7 +844,8 @@ struct SearchQuery {
     var domains: [String]
     var readingStatus: [ReadingStatus]
     var dateRange: DateRange?
-    var tabType: TabType? // 6タブシステム対応
+    var mainTab: MainTabType? // 2タブシステム対応
+    var menuItem: SideMenuItem? // サイドメニュー対応
 }
 
 struct SearchResult {
@@ -814,7 +866,8 @@ struct BookmarkFilter {
     var domains: [String]?
     var memoTypes: [MemoType]?
     var dateRange: DateRange?
-    var tabType: TabType? // タブ別フィルタリング
+    var mainTab: MainTabType? // メインタブ別フィルタリング
+    var menuItem: SideMenuItem? // サイドメニュー別フィルタリング
 }
 
 struct ExportFilters {
@@ -831,32 +884,34 @@ struct RecommendationResult {
     var recommendationReason: String
 }
 
-// 6タブシステム関連モデル
-struct TabConfiguration {
-    var tabOrder: [TabType]
-    var hiddenTabs: Set<TabType>
+// 2タブ + サイドメニューシステム関連モデル
+struct MenuConfiguration {
+    var menuOrder: [SideMenuItem]
+    var hiddenMenuItems: Set<SideMenuItem>
     var swipeEnabled: Bool
-    var autoHideEmptyTabs: Bool
+    var autoHideEmptyItems: Bool
     
-    static var defaultConfiguration: TabConfiguration {
-        return TabConfiguration(
-            tabOrder: TabType.allCases,
-            hiddenTabs: [],
+    static var defaultConfiguration: MenuConfiguration {
+        return MenuConfiguration(
+            menuOrder: SideMenuItem.allCases,
+            hiddenMenuItems: [],
             swipeEnabled: true,
-            autoHideEmptyTabs: true
+            autoHideEmptyItems: true
         )
     }
 }
 
-struct TabState {
-    var currentTab: TabType
-    var visibleTabs: [TabType]
-    var articleCounts: [TabType: Int]
+struct HomeState {
+    var currentMainTab: MainTabType
+    var isSideMenuOpen: Bool
+    var visibleMenuItems: [SideMenuItem]
+    var articleCounts: [SideMenuItem: Int]
     var isLoading: Bool
     
-    init(currentTab: TabType = .newEntry) {
-        self.currentTab = currentTab
-        self.visibleTabs = TabType.allCases
+    init(currentMainTab: MainTabType = .newEntry) {
+        self.currentMainTab = currentMainTab
+        self.isSideMenuOpen = false
+        self.visibleMenuItems = SideMenuItem.allCases
         self.articleCounts = [:]
         self.isLoading = false
     }
@@ -881,15 +936,15 @@ struct SelectedText {
 struct SwipeGestureState {
     var translation: CGFloat
     var isDragging: Bool
-    var targetTab: TabType?
-    var direction: SwipeDirection?
+    var shouldOpenMenu: Bool
+    var shouldCloseMenu: Bool
     var velocity: CGFloat
     
     init() {
         self.translation = 0
         self.isDragging = false
-        self.targetTab = nil
-        self.direction = nil
+        self.shouldOpenMenu = false
+        self.shouldCloseMenu = false
         self.velocity = 0
     }
 }
@@ -908,31 +963,33 @@ struct TextSelectionResult {
     }
 }
 
-struct TabVisibilityState {
-    var visibleTabs: [TabType]
-    var hiddenTabs: [TabType]
-    var articleCounts: [TabType: Int]
+struct MenuVisibilityState {
+    var visibleMenuItems: [SideMenuItem]
+    var hiddenMenuItems: [SideMenuItem]
+    var articleCounts: [SideMenuItem: Int]
     var lastUpdated: Date
     
     init() {
-        self.visibleTabs = [.newEntry, .bookmark]
-        self.hiddenTabs = []
+        self.visibleMenuItems = SideMenuItem.allCases
+        self.hiddenMenuItems = []
         self.articleCounts = [:]
         self.lastUpdated = Date()
     }
 }
 
 struct SwipeNavigationResult {
-    var targetTab: TabType?
+    var shouldOpenMenu: Bool
+    var shouldCloseMenu: Bool
     var shouldAnimate: Bool
     var animationDuration: Double
     var isValidSwipe: Bool
     
-    init(targetTab: TabType?, shouldAnimate: Bool = true, animationDuration: Double = 0.3) {
-        self.targetTab = targetTab
+    init(shouldOpenMenu: Bool = false, shouldCloseMenu: Bool = false, shouldAnimate: Bool = true, animationDuration: Double = 0.3) {
+        self.shouldOpenMenu = shouldOpenMenu
+        self.shouldCloseMenu = shouldCloseMenu
         self.shouldAnimate = shouldAnimate
         self.animationDuration = animationDuration
-        self.isValidSwipe = targetTab != nil
+        self.isValidSwipe = shouldOpenMenu || shouldCloseMenu
     }
 }
 ```
@@ -953,85 +1010,105 @@ struct SwipeNavigationResult {
 *For any* bookmark in the system, when displaying the bookmark list, all required information (title, URL, thumbnail, publish date, elapsed time) should be present
 **Validates: Requirements 1.3**
 
-### Property 4: 表示モード切り替えの一貫性
-*For any* current view mode, when a user switches the display mode, the system should toggle between thumbnail and list view correctly
-**Validates: Requirements 1.4**
-
-### Property 5: ブックマーク編集の永続性
+### Property 4: ブックマーク編集の永続性
 *For any* bookmark, when a user edits its title or tags, the changes should be permanently saved and reflected in subsequent retrievals
 **Validates: Requirements 1.5**
 
-### Property 6: メモ追加の関連付け
+### Property 5: メモ追加の関連付け
 *For any* article and memo content, when a user adds a memo, it should be correctly associated with the article and include a creation timestamp
 **Validates: Requirements 2.1**
 
-### Property 7: メモ文字数制限
+### Property 6: メモ文字数制限
 *For any* text input exceeding 140 characters, the system should reject the input and display an error message
 **Validates: Requirements 2.2**
 
-### Property 8: 写真添付制限
+### Property 7: 写真添付制限
 *For any* memo, the system should allow attachment of at most 4 photos and reject additional attachments
 **Validates: Requirements 2.3**
 
-### Property 9: メモ編集の更新記録
+### Property 8: メモ編集の更新記録
 *For any* existing memo, when a user edits it, the system should save the changes and update the modification timestamp
 **Validates: Requirements 2.4**
 
-### Property 10: メモ削除の完全性
+### Property 9: メモ削除の完全性
 *For any* memo with attached photos, when a user deletes it, both the memo and all attached photos should be completely removed
 **Validates: Requirements 2.5**
 
-### Property 11: メモ時系列表示
+### Property 10: メモ時系列表示
 *For any* article with multiple memos, the memos should be displayed in chronological order based on creation time
 **Validates: Requirements 2.6**
 
-### Property 12: タグ関連付け
+### Property 11: タグ関連付け
 *For any* article and tag, when a user adds the tag to the article, the tag should be correctly associated and retrievable
 **Validates: Requirements 3.1**
 
-### Property 13: 複数タグ関連付け
+### Property 12: 複数タグ関連付け
 *For any* article and set of tags, when a user assigns multiple tags, all tags should be associated with the article
 **Validates: Requirements 3.2**
 
-### Property 14: タグ削除の一貫性
+### Property 13: タグ削除の一貫性
 *For any* tag associated with an article, when a user removes the tag, it should no longer be associated with that article
 **Validates: Requirements 3.3**
 
-### Property 15: タグ使用頻度順表示
+### Property 14: タグ使用頻度順表示
 *For any* set of tags, when displaying the tag list, tags should be ordered by usage frequency in descending order
 **Validates: Requirements 3.4**
 
-### Property 16: タグ編集の伝播
+### Property 15: タグ編集の伝播
 *For any* tag, when a user edits its name, the change should be reflected in all articles that use that tag
 **Validates: Requirements 3.5**
 
-### Property 17: RSS自動検出の試行
+### Property 16: RSS自動検出の試行
 *For any* article URL, when a user inputs it, the system should attempt to detect RSS feeds from that domain
 **Validates: Requirements 12.1**
 
-### Property 18: RSS検出後の自動追加
+### Property 17: RSS検出後の自動追加
 *For any* detected RSS feed, the system should automatically add it to the monitoring list
 **Validates: Requirements 12.2**
 
-### Property 19: RSS検出失敗時のフォールバック
+### Property 18: RSS検出失敗時のフォールバック
 *For any* URL where RSS detection fails, the system should provide a manual feed URL input option
 **Validates: Requirements 12.3**
 
-### Property 20: AI要約生成
+### Property 19: AI要約生成
 *For any* bookmarked article with content, the AI summarizer should generate a summary of the article
 **Validates: Requirements 17.1**
 
-### Property 21: 要約文数制限
+### Property 20: 要約文数制限
 *For any* generated summary, it should contain between 3 and 5 sentences
 **Validates: Requirements 17.2**
 
-### Property 22: タグ推薦生成
+### Property 21: タグ推薦生成
 *For any* bookmarked article with content, the tag recommender should generate relevant tag suggestions
 **Validates: Requirements 18.1**
 
-### Property 23: 推薦タグ数制限
+### Property 22: 推薦タグ数制限
 *For any* tag recommendation, the system should suggest at most 5 tags
 **Validates: Requirements 18.2**
+
+### Property 23: メモ種類別フィルタリング
+*For any* memo type, when filtering articles by memo type, the system should return only articles that have memos of that specific type
+**Validates: Requirements 13.5**
+
+### Property 24: テキスト選択の正確性
+*For any* selected text in WebView, the system should accurately capture the selected text content without modification
+**Validates: Requirements 19.1**
+
+### Property 25: 引用メモの完全性
+*For any* selected text, when creating a quote memo, the system should include both the selected text and the source URL
+**Validates: Requirements 19.3, 19.4**
+
+### Property 26: サイドメニュー項目の動的表示
+*For any* memo type with zero associated articles, the corresponding side menu item should be automatically hidden
+**Validates: Requirements 21.1, 21.3**
+
+### Property 27: サイドメニュー開閉の一貫性
+*For any* swipe gesture, when a user swipes right, the side menu should open, and when swiping left or tapping outside, it should close
+**Validates: Requirements 20.1, 20.2, 20.3**
+
+### Property 28: メニュー設定の永続性
+*For any* menu configuration change, when the user changes menu item order or visibility, the new configuration should persist across app restarts
+**Validates: Requirements 22.4**
 
 ## Error Handling
 
@@ -1145,82 +1222,27 @@ func testMemoCharacterLimit() {
 - Content Generator: 実際の記事コンテンツに近い構造
 - Tag Generator: 実用的なタグ名パターン
 - Date Generator: 合理的な日付範囲
-### Property 24: メモ種類別フィルタリング
-*For any* memo type, when filtering articles by memo type, the system should return only articles that have memos of that specific type
-**Validates: Requirements 13.4**
 
-### Property 25: テキスト選択の正確性
-*For any* selected text in WebView, the system should accurately capture the selected text content without modification
-**Validates: Requirements 2.1**
+## 開発環境・ツール
 
-### Property 26: 引用メモの完全性
-*For any* selected text, when creating a quote memo, the system should include both the selected text and the source URL
-**Validates: Requirements 2.1, 13.1**
+### Agent Skills（Claude Code用）
 
-### Property 27: タブ表示の動的性
-*For any* memo type with zero associated articles, the corresponding tab should be automatically hidden from the tab bar
-**Validates: Requirements 13.4**
+以下のSkillsをClaude Codeに設定済み。設計判断時に考慮すること。
 
-### Property 28: スワイプタブ切り替えの一貫性
-*For any* tab position, when swiping left or right, the system should transition to the adjacent tab in the correct direction
-**Validates: Requirements 10.1**
+| Skill | 目的 | 設計への影響 |
+|-------|------|-------------|
+| ios-security | OWASP準拠チェック | Keychain必須、ATS無効化禁止 |
+| swiftui-review | コード品質 | View200行以下、MVVM遵守 |
+| swift-build | ビルド手順 | SwiftLint警告0が必須 |
 
-### Property 29: タブ順序カスタマイズの永続性
-*For any* custom tab order configuration, when the user changes the tab order in settings, the new order should be saved and persist across app restarts
-**Validates: Requirements 13.5**
+### MCP連携
 
-### Property 30: 6タブシステムの整合性
-*For any* tab type, the articles displayed in that tab should match the tab's filtering criteria (memo type association)
-**Validates: Requirements 13.1, 13.4**
+- **GitHub MCP**: PR/Issue管理に使用
+- **Filesystem MCP**: ローカルファイル操作
+- **Sequential Thinking MCP**: 複雑な設計判断の段階的思考支援
 
-### Property 31: テキスト選択の正確性
-*For any* selected text in WebView, when a user selects text, the system should accurately capture the selected text content without modification or loss
-**Validates: Requirements 19.1, 19.2**
+### 制約事項
 
-### Property 32: 引用メモ作成の完全性
-*For any* selected text, when creating a quote memo, the system should include the selected text, source URL, selection timestamp, and user comments
-**Validates: Requirements 19.3, 19.4, 19.5**
-
-### Property 33: 引用メモ文字数制限の一貫性
-*For any* selected text exceeding 140 characters, when creating a quote memo, the system should appropriately truncate the text while preserving the original meaning
-**Validates: Requirements 19.6**
-
-### Property 34: スワイプナビゲーションの方向性
-*For any* swipe gesture, when a user swipes left or right, the system should transition to the correct adjacent tab in the expected direction
-**Validates: Requirements 20.1, 20.2**
-
-### Property 35: スワイプナビゲーションの循環性
-*For any* edge tab (first or last), when a user swipes beyond the edge, the system should correctly wrap around to the opposite end
-**Validates: Requirements 20.3, 20.4**
-
-### Property 36: スワイプアニメーションの一貫性
-*For any* tab transition via swipe, the system should display smooth animation and update the content appropriately
-**Validates: Requirements 20.5**
-
-### Property 37: 動的タブ表示の即応性
-*For any* memo type with changing article count, when articles are added or removed, the corresponding tab should immediately update its visibility state
-**Validates: Requirements 21.1, 21.2, 21.3**
-
-### Property 38: 必須タブの永続性
-*For any* system state, New Entry and Bookmark tabs should always remain visible regardless of content or settings
-**Validates: Requirements 21.4**
-
-### Property 39: タブ表示状態の同期性
-*For any* tab visibility change, the system should update the tab bar display in real-time without requiring app restart
-**Validates: Requirements 21.5**
-
-### Property 40: タブ設定の永続性
-*For any* tab configuration change, when a user modifies tab order or visibility settings, the changes should persist across app restarts
-**Validates: Requirements 22.4**
-
-### Property 41: タブ順序変更の整合性
-*For any* drag and drop operation, when a user reorders tabs, the new order should be immediately reflected in the tab bar and maintained consistently
-**Validates: Requirements 22.2**
-
-### Property 42: スワイプ設定の即時反映
-*For any* swipe navigation setting change, when a user enables or disables swipe navigation, the change should take effect immediately without restart
-**Validates: Requirements 22.5**
-
-### Property 43: デフォルト設定復元の完全性
-*For any* customized configuration, when a user resets to default settings, all tab order, visibility, and behavior settings should return to their original state
-**Validates: Requirements 22.7**
+- セキュリティSkillでNGになるコードはタスクから除外
+- ビルドSkillの手順を通過しないとタスク完了としない
+- SwiftUIコンポーネントは200行以下に分割必須

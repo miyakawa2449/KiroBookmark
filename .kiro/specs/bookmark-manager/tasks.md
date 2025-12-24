@@ -2,28 +2,26 @@
 
 ## Overview
 
-Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装します。6タブ式ホーム画面（New Entry, Bookmark, Todo, アイディア, 感想, その他）、ブックマーク管理、メモ種類別管理、タグ付けの基本機能のみに集中し、Core Dataによるローカル保存で実装します。SwiftUIとSwiftを使用してネイティブiOSアプリとして開発します。
+Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装します。2タブ + サイドメニュー式ホーム画面（New Entry, Bookmark + サイドメニュー）、ブックマーク管理、メモ種類別管理、タグ付けの基本機能のみに集中し、Core Dataによるローカル保存で実装します。SwiftUIとSwiftを使用してネイティブiOSアプリとして開発します。
 
-**Phase 1A（1週間MVP）**: 6タブ式ホーム画面・ブックマーク・メモ種類別管理・タグの基本機能のみ
+**Phase 1A（1週間MVP）**: 2タブ + サイドメニュー式ホーム画面・ブックマーク・メモ種類別管理・タグの基本機能のみ
 **Phase 1B（後日実装）**: RSS自動更新、検索、エクスポート、通知、関連記事提案
 
-## 🏠 新しい6タブホーム画面仕様
+## 🏠 新しい2タブ + サイドメニューホーム画面仕様
 
 ### UI構造
-- **6タブ式ナビゲーション**: スワイプ可能なタブシステム
+- **2タブ式ナビゲーション**: New EntryとBookmarkの2タブのみ
 - **「New Entry」タブ**: お気に入りブログの最新記事を投稿日時順でカード表示
 - **「Bookmark」タブ**: ユーザー登録記事を最新アクティビティ順でカード表示
-- **「Todo」タブ**: TODOメモを持つ記事のみ表示
-- **「アイディア」タブ**: アイディアメモを持つ記事のみ表示
-- **「感想」タブ**: 感想メモを持つ記事のみ表示
-- **「その他」タブ**: その他メモを持つ記事のみ表示
+- **サイドメニュー（右スワイプ）**: いいね、アイディア、感想、TODO、その他
+- **ヘッダー中央**: アプリアイコン（後日追加）
 - **表示形式**: カード表示のみ（リスト表示は削除）
 
 ### 新機能要件
-- **6タブシステム**: メモ種類別のタブ表示
-- **スワイプ可能タブ**: 左右スワイプでタブ切り替え
-- **未使用タブの非表示**: メモが存在しないタブは自動的に非表示
-- **カスタマイズ可能タブ順序**: 設定画面でタブの並び順を変更可能
+- **2タブシステム**: New EntryとBookmarkのシンプルなタブ表示
+- **サイドメニュー**: 右スワイプで表示、メモ種類別フィルタリング
+- **未使用メニュー項目の非表示**: メモが存在しないメニュー項目は自動的に非表示
+- **カスタマイズ可能メニュー順序**: 設定画面でメニュー項目の並び順を変更可能
 - **テキスト選択機能**: WebView内でテキスト選択して引用メモ作成
 - ブログお気に入り機能（Phase 1B: 通知連携）
 - 記事お気に入り機能
@@ -45,7 +43,7 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
   - [x] Core Dataモデル定義（ArticleBookmark, TweetMemo, Tag）
   - [x] PersistenceController実装
   - [x] SwiftCheck統合
-  - [x] 基本プロパティテスト実装（Property 1, 6, 7, 12, 13）
+  - [x] 基本プロパティテスト実装（Property 1, 5, 6, 11, 12）
   - _Requirements: 1.1, 2.1, 3.1, 11.1_
 
 ### 🚧 実装予定
@@ -76,8 +74,7 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
   - [ ] 2.4 ブックマーク機能テスト
     - **Property 2: ブックマーク削除の完全性**
     - **Property 3: ブックマーク表示の完全性**
-    - **Property 5: ブックマーク編集の永続性**
-    - **Property 17: お気に入りブログ関連付け**
+    - **Property 4: ブックマーク編集の永続性**
     - ユニットテスト（BookmarkRepository, FavoriteBlogRepository）
     - _Validates: Requirements 1.1, 1.2, 1.3, 1.5_
 
@@ -98,12 +95,12 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
     - _Requirements: 2.6, 13.3, 13.4_
 
   - [ ] 3.3 メモ機能テスト
-    - **Property 9: メモ編集の更新記録**
-    - **Property 10: メモ削除の完全性**
-    - **Property 11: メモ時系列表示**
-    - **Property 24: メモ種類別フィルタリング**
+    - **Property 8: メモ編集の更新記録**
+    - **Property 9: メモ削除の完全性**
+    - **Property 10: メモ時系列表示**
+    - **Property 23: メモ種類別フィルタリング**
     - ユニットテスト（MemoRepository + 種類別機能）
-    - _Validates: Requirements 2.1, 2.2, 2.4, 2.5, 2.6, 13.1, 13.2, 13.3, 13.4_
+    - _Validates: Requirements 2.1, 2.2, 2.4, 2.5, 2.6, 13.1, 13.2, 13.3, 13.5_
 
 - [ ] **Task 4: タグ管理機能** (推定: 1日)
   - [ ] 4.1 TagManager + Repository実装
@@ -120,9 +117,9 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
     - _Requirements: 3.4, 3.5_
 
   - [ ] 4.3 タグ機能テスト
-    - **Property 14: タグ削除の一貫性**
-    - **Property 15: タグ使用頻度順表示**
-    - **Property 16: タグ編集の伝播**
+    - **Property 13: タグ削除の一貫性**
+    - **Property 14: タグ使用頻度順表示**
+    - **Property 15: タグ編集の伝播**
     - ユニットテスト（TagRepository）
     - _Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5_
 
@@ -150,47 +147,43 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
     - _Requirements: 1.1_
 
   - [ ] 5.4 記事表示機能テスト
-    - **Property 18: WebView記事表示の完全性**
-    - **Property 19: ブックマーク登録の一意性**
-    - **Property 25: テキスト選択の正確性**
-    - **Property 26: 引用メモの完全性**
+    - **Property 24: テキスト選択の正確性**
+    - **Property 25: 引用メモの完全性**
     - ユニットテスト（WebView機能、スクロール検知、テキスト選択）
-    - _Validates: Requirements 1.1, 2.1, 10.1, 10.2, 13.1_
+    - _Validates: Requirements 1.1, 2.1, 10.1, 10.2, 19.1, 19.3, 19.4_
 
-- [ ] **Task 6: 6タブ式ホーム画面・ナビゲーション** (推定: 2日)
-  - [ ] 6.1 6タブ式ホーム画面実装
-    - HomeView（SwiftUI）作成 - 6タブシステム
+- [ ] **Task 6: 2タブ + サイドメニュー式ホーム画面・ナビゲーション** (推定: 2日)
+  - [ ] 6.1 2タブ + サイドメニュー式ホーム画面実装
+    - HomeView（SwiftUI）作成 - 2タブ + サイドメニューシステム
     - NewEntryTabView（SwiftUI）作成 - お気に入りブログの最新記事
     - BookmarkTabView（SwiftUI）作成 - ユーザー登録記事
-    - TodoTabView（SwiftUI）作成 - TODOメモ記事のみ
-    - IdeaTabView（SwiftUI）作成 - アイディアメモ記事のみ
-    - ThoughtTabView（SwiftUI）作成 - 感想メモ記事のみ
-    - OtherTabView（SwiftUI）作成 - その他メモ記事のみ
-    - HomeViewModel実装 - タブ状態管理・メモ種類別フィルタリング
-    - _Requirements: 10.1, 10.2, 13.4_
+    - SideMenuView（SwiftUI）作成 - メモ種類別メニュー
+    - HomeViewModel実装 - タブ状態管理・メニュー表示管理
+    - _Requirements: 10.1, 10.2, 10.7, 13.4_
 
-  - [ ] 6.2 スワイプ可能タブ・動的タブ表示実装
-    - スワイプジェスチャーによるタブ切り替え
-    - 未使用メモタイプタブの自動非表示機能
-    - タブ表示状態の動的更新
-    - タブインジケーター・アニメーション
-    - _Requirements: 13.4_
+  - [ ] 6.2 サイドメニュー・動的メニュー表示実装
+    - 右スワイプジェスチャーによるサイドメニュー表示
+    - 左スワイプ・メニュー外タップによるメニュー閉じる
+    - 未使用メモタイプメニュー項目の自動非表示機能
+    - メニュー表示状態の動的更新
+    - メニューアニメーション
+    - _Requirements: 13.4, 13.7, 20.1, 20.2, 20.3, 21.1, 21.2, 21.3_
 
   - [ ] 6.3 カード表示統一・ソート機能実装
     - ArticleCardView（SwiftUI）作成 - 統一カードコンポーネント
     - 投稿日時順ソート（New Entryタブ）
     - 最新アクティビティ順ソート（Bookmarkタブ）
-    - メモ種類別ソート（Todo/アイディア/感想/その他タブ）
+    - メモ種類別ソート（サイドメニュー項目）
     - カード表示最適化（画像領域、テキスト配置、メモ種類表示）
     - カードタップ → ArticleWebView遷移
     - _Requirements: 10.1, 10.2, 13.3_
 
-  - [ ] 6.4 設定画面・タブカスタマイズ実装
+  - [ ] 6.4 設定画面・メニューカスタマイズ実装
     - SettingsView（SwiftUI）作成
-    - タブ順序カスタマイズ機能
-    - タブ表示/非表示設定
+    - メニュー項目順序カスタマイズ機能
+    - メニュー項目表示/非表示設定
     - 設定データの永続化
-    - _Requirements: 13.5_
+    - _Requirements: 22.1, 22.2, 22.3, 22.4_
 
   - [ ] 6.5 記事詳細画面実装
     - ArticleDetailView（SwiftUI）作成
@@ -202,16 +195,16 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
     - _Requirements: 10.1, 10.2, 13.3_
 
   - [ ] 6.6 統合テスト
-    - 6タブ切り替えテスト
-    - スワイプ操作テスト
-    - 動的タブ表示テスト
+    - 2タブ切り替えテスト
+    - サイドメニュー開閉テスト
+    - 動的メニュー表示テスト
     - メモ種類別フィルタリングテスト
     - カード表示テスト
     - WebView遷移テスト
     - ソート機能テスト
     - UI操作フローテスト
     - データ整合性テスト
-    - _Requirements: 10.1, 10.2, 13.1, 13.2, 13.3, 13.4, 13.5_
+    - _Requirements: 10.1, 10.2, 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
 
 - [ ] **Task 7: MVP完成・検証** (推定: 0.5日)
   - [ ] 7.1 最終動作確認
@@ -238,6 +231,47 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
 - **Dependency Injection**: Repository を ViewModel に注入
 - **Single Responsibility**: 各クラスは単一の責務を持つ
 
+### 🛠️ 開発環境・ツール連携
+
+#### Kiro（仕様管理）
+- 要件定義・設計の管理
+- タスク進捗の追跡
+- 仕様変更の影響分析
+- design.md、tasks.md、requirements.mdの管理
+
+#### Claude Code（実装・レビュー）
+- コード実装
+- Agent Skills自動実行
+  - **ios-security**: Keychain使用、ATS設定、OWASP準拠チェック
+  - **swiftui-review**: View200行以下、MVVM遵守、パフォーマンス・アクセシビリティ
+  - **swift-build**: ビルド・テスト実行（iOS/macOS対応）
+  - **appstore-prep**: App Store申請前チェックリスト
+- MCP連携
+  - **GitHub MCP**: PR/Issue管理
+  - **Filesystem MCP**: ローカルファイル操作
+  - **Sequential Thinking MCP**: 複雑な設計判断の段階的思考支援
+
+#### タスク完了条件（必須チェック項目）
+各タスク完了時に以下を確認：
+- [ ] **SwiftLint警告0**: コード品質基準を満たす
+- [ ] **セキュリティチェック通過**: ios-security Skillによる検証
+  - Keychain使用（機密情報保存時）
+  - ATS無効化なし
+  - ハードコードされたシークレットなし
+- [ ] **SwiftUIコンポーネント200行以下**: swiftui-review Skillによる検証
+  - View肥大化の防止
+  - 適切なコンポーネント分割
+- [ ] **ビルド・テスト成功**: swift-build Skillによる検証
+  - iOS Simulatorでビルド成功
+  - 全ユニットテスト通過
+- [ ] **プロパティテスト通過**: 該当するプロパティテストが全て成功
+- [ ] **MVVM遵守**: ビジネスロジックがViewModelに分離されている
+
+#### 役割分担
+- **設計判断**: Kiroで仕様を確認・更新
+- **実装**: Claude Codeで実装・Skills自動実行
+- **品質保証**: 両者連携でチェック項目を確認
+
 ### 実装順序の理由
 1. **Task 2 (ブックマーク)**: 基盤となるデータ管理機能 + お気に入りブログ機能
 2. **Task 3 (メモ)**: ブックマークに依存する機能
@@ -247,25 +281,28 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
 6. **Task 7 (検証)**: 完成品の品質確認
 
 ### テスト戦略
-- **プロパティテスト**: 各機能の普遍的な性質を検証
+- **プロパティテスト**: 各機能の普遍的な性質を検証（SwiftCheck使用）
 - **ユニットテスト**: Repository層のビジネスロジックを検証
 - **統合テスト**: UI操作からデータ保存までの一連の流れを検証
+- **Skills自動実行**: Claude Code側でセキュリティ・品質チェック自動実行
+- **仕様整合性確認**: Kiro側で設計ドキュメントとの整合性確認
 
 ### Phase 1A 制約の再確認
-- ✅ **実装対象**: Twitter風ホーム画面・ブックマーク・メモ・タグの基本CRUD・お気に入り機能
+- ✅ **実装対象**: 2タブ + サイドメニュー式ホーム画面・ブックマーク・メモ・タグの基本CRUD・お気に入り機能
 - ❌ **除外機能**: RSS自動更新、通知、検索、エクスポート、AI機能、写真添付
-- 🎯 **目標**: 1週間で動作するTwitter風MVPアプリ
+- 🎯 **目標**: 1週間で動作する2タブ + サイドメニュー式MVPアプリ
 
 ### 新仕様による変更点
 - **UI**: リスト表示削除、カード表示のみ
-- **ホーム画面**: 6タブ式（New Entry, Bookmark, Todo, アイディア, 感想, その他）
-- **スワイプ操作**: タブ間の左右スワイプ切り替え
-- **動的タブ**: 未使用メモタイプタブの自動非表示
+- **ホーム画面**: 2タブ（New Entry, Bookmark）+ サイドメニュー（いいね、アイディア、感想、TODO、その他）
+- **スワイプ操作**: 右スワイプでサイドメニュー表示、左スワイプ・メニュー外タップで閉じる
+- **動的メニュー**: 未使用メモタイプメニュー項目の自動非表示
 - **テキスト選択**: WebView内でのテキスト選択・引用メモ作成
-- **設定画面**: タブ順序のカスタマイズ機能
+- **設定画面**: メニュー項目順序のカスタマイズ機能
 - **ソート**: 投稿日時順 / 最新アクティビティ順 / メモ種類別
 - **お気に入り**: ブログ・記事両方に対応
 - **通知**: Phase 1Bに延期（基盤のみPhase 1Aで実装）
+- **ヘッダー**: 中央にアプリアイコン（後日追加）
 
 ## Phase 1B Tasks (後日実装予定)
 
@@ -299,10 +336,10 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
 - [ ] **メモ**: 記事ごとに複数メモ追加・編集・削除・種類別分類が動作
 - [ ] **タグ**: 記事にタグ付け・タグ管理が動作
 - [ ] **WebView**: アプリ内記事表示・テキスト選択・スクロール停止時ブックマーク登録が動作
-- [ ] **6タブホーム画面**: 6タブ式UI（New Entry, Bookmark, Todo, アイディア, 感想, その他）が動作
-- [ ] **スワイプ操作**: タブ間のスワイプ切り替えが動作
-- [ ] **動的タブ**: 未使用メモタイプタブの自動非表示が動作
-- [ ] **設定画面**: タブ順序カスタマイズが動作
+- [ ] **2タブホーム画面**: 2タブ式UI（New Entry, Bookmark）が動作
+- [ ] **サイドメニュー**: 右スワイプでメニュー表示、メモ種類別フィルタリングが動作
+- [ ] **動的メニュー**: 未使用メモタイプメニュー項目の自動非表示が動作
+- [ ] **設定画面**: メニュー項目順序カスタマイズが動作
 - [ ] **統合**: 全機能が1つのアプリで連携動作
 - [ ] **品質**: 全プロパティテスト・ユニットテストが通過
 
@@ -311,9 +348,9 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
 - **SwiftUI Preview**: UI開発の高速化
 - **Property-Based Testing**: エッジケースの自動発見
 - **MVVM**: UI とビジネスロジックの分離
-- **6タブシステム**: メモ種類別の効率的な記事管理
-- **スワイプ操作**: 直感的なタブ切り替え
-- **動的UI**: 未使用タブの自動非表示による最適化
+- **2タブ + サイドメニュー**: シンプルなホーム画面とメモ種類別の効率的な記事管理
+- **スワイプ操作**: 直感的なサイドメニュー表示
+- **動的UI**: 未使用メニュー項目の自動非表示による最適化
 
 ### 📊 進捗追跡
 - **Daily Standup**: 毎日の進捗確認
@@ -324,30 +361,30 @@ Phase 1Aでは、最初の1週間で動作する超シンプルなMVPを実装�
 - **技術的負債**: Phase 1A で妥協した部分の記録
 - **拡張ポイント**: RSS、検索、AI機能の実装準備
 - **パフォーマンス**: 大量データ対応の検討事項
-- **6タブシステム拡張**: カスタムメモタイプ追加機能の準備
+- **2タブ + サイドメニュー拡張**: カスタムメモタイプ追加機能の準備
 
-## 🧪 新しいプロパティテスト（6タブシステム対応）
+## 🧪 新しいプロパティテスト（2タブ + サイドメニューシステム対応）
 
-### Property 24: メモ種類別フィルタリング
+### Property 23: メモ種類別フィルタリング
 *For any* memo type, when filtering articles by memo type, the system should return only articles that have memos of that specific type
-**Validates: Requirements 13.4**
-
-### Property 25: テキスト選択の正確性
-*For any* selected text in WebView, the system should accurately capture the selected text content without modification
-**Validates: Requirements 2.1**
-
-### Property 26: 引用メモの完全性
-*For any* selected text, when creating a quote memo, the system should include both the selected text and the source URL
-**Validates: Requirements 2.1, 13.1**
-
-### Property 27: タブ表示の動的性
-*For any* memo type with zero associated articles, the corresponding tab should be automatically hidden from the tab bar
-**Validates: Requirements 13.4**
-
-### Property 28: スワイプタブ切り替えの一貫性
-*For any* tab position, when swiping left or right, the system should transition to the adjacent tab in the correct direction
-**Validates: Requirements 10.1**
-
-### Property 29: タブ順序カスタマイズの永続性
-*For any* custom tab order configuration, when the user changes the tab order in settings, the new order should be saved and persist across app restarts
 **Validates: Requirements 13.5**
+
+### Property 24: テキスト選択の正確性
+*For any* selected text in WebView, the system should accurately capture the selected text content without modification
+**Validates: Requirements 19.1**
+
+### Property 25: 引用メモの完全性
+*For any* selected text, when creating a quote memo, the system should include both the selected text and the source URL
+**Validates: Requirements 19.3, 19.4**
+
+### Property 26: サイドメニュー項目の動的表示
+*For any* memo type with zero associated articles, the corresponding side menu item should be automatically hidden
+**Validates: Requirements 21.1, 21.3**
+
+### Property 27: サイドメニュー開閉の一貫性
+*For any* swipe gesture, when a user swipes right, the side menu should open, and when swiping left or tapping outside, it should close
+**Validates: Requirements 20.1, 20.2, 20.3**
+
+### Property 28: メニュー設定の永続性
+*For any* menu configuration change, when the user changes menu item order or visibility, the new configuration should persist across app restarts
+**Validates: Requirements 22.4**

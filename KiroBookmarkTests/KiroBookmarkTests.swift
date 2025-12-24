@@ -9,7 +9,7 @@ import XCTest
 import CoreData
 @testable import KiroBookmark
 
-final class KiroBookmarkTests: XCTestCase {
+final class KiroBookmarkTests: XCTestCase, Sendable {
 
     // MARK: - Test Context Helper
 
@@ -29,6 +29,8 @@ final class KiroBookmarkTests: XCTestCase {
         bookmark.url = "https://example.com/article"
         bookmark.domain = "example.com"
         bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
 
         try context.save()
 
@@ -37,6 +39,8 @@ final class KiroBookmarkTests: XCTestCase {
 
         XCTAssertEqual(results.count, 1)
         XCTAssertEqual(results.first?.title, "Test Article")
+        XCTAssertEqual(results.first?.isFavorite, false)
+        XCTAssertEqual(results.first?.readingStatus, "unread")
     }
 
     func testTweetMemoCreation() throws {
@@ -45,6 +49,8 @@ final class KiroBookmarkTests: XCTestCase {
         let memo = TweetMemo(context: context)
         memo.id = UUID()
         memo.content = "Test memo content"
+        memo.memoType = MemoType.idea.rawValue
+        memo.isQuote = false
         memo.createdDate = Date()
         memo.updatedDate = Date()
 
@@ -55,6 +61,33 @@ final class KiroBookmarkTests: XCTestCase {
 
         XCTAssertEqual(results.count, 1)
         XCTAssertEqual(results.first?.content, "Test memo content")
+        XCTAssertEqual(results.first?.memoType, "idea")
+        XCTAssertEqual(results.first?.isQuote, false)
+    }
+
+    func testQuoteMemoCreation() throws {
+        let context = makeTestContext()
+
+        let memo = TweetMemo(context: context)
+        memo.id = UUID()
+        memo.content = "This is a quote memo"
+        memo.memoType = MemoType.quote.rawValue
+        memo.isQuote = true
+        memo.selectedText = "Selected text from article"
+        memo.sourceURL = "https://example.com/article"
+        memo.selectionContext = "Context around the selection"
+        memo.createdDate = Date()
+        memo.updatedDate = Date()
+
+        try context.save()
+
+        let request = TweetMemo.fetchRequest()
+        let results = try context.fetch(request)
+
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results.first?.isQuote, true)
+        XCTAssertEqual(results.first?.selectedText, "Selected text from article")
+        XCTAssertEqual(results.first?.sourceURL, "https://example.com/article")
     }
 
     func testTagCreation() throws {
@@ -83,10 +116,14 @@ final class KiroBookmarkTests: XCTestCase {
         bookmark.url = "https://example.com"
         bookmark.domain = "example.com"
         bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
 
         let memo = TweetMemo(context: context)
         memo.id = UUID()
         memo.content = "Related memo"
+        memo.memoType = MemoType.thought.rawValue
+        memo.isQuote = false
         memo.createdDate = Date()
         memo.updatedDate = Date()
         memo.bookmark = bookmark
@@ -107,6 +144,8 @@ final class KiroBookmarkTests: XCTestCase {
         bookmark.url = "https://example.com"
         bookmark.domain = "example.com"
         bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
 
         let tag = Tag(context: context)
         tag.id = UUID()
@@ -121,5 +160,217 @@ final class KiroBookmarkTests: XCTestCase {
         let bookmarks = tag.bookmarks as? Set<ArticleBookmark> ?? []
         XCTAssertEqual(tags.count, 1)
         XCTAssertEqual(bookmarks.count, 1)
+    }
+
+    func testBookmarkFavoriteToggle() throws {
+        let context = makeTestContext()
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Favorite Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+
+        try context.save()
+
+        XCTAssertEqual(bookmark.isFavorite, false)
+
+        bookmark.isFavorite = true
+        try context.save()
+
+        XCTAssertEqual(bookmark.isFavorite, true)
+    }
+
+    func testMemoTypeEnum() {
+        XCTAssertEqual(MemoType.idea.displayName, "アイディア")
+        XCTAssertEqual(MemoType.thought.displayName, "感想")
+        XCTAssertEqual(MemoType.todo.displayName, "TODO")
+        XCTAssertEqual(MemoType.quote.displayName, "引用")
+        XCTAssertEqual(MemoType.other.displayName, "その他")
+    }
+
+    func testReadingStatusEnum() {
+        XCTAssertEqual(ReadingStatus.unread.displayName, "未読")
+        XCTAssertEqual(ReadingStatus.reading.displayName, "読みかけ")
+        XCTAssertEqual(ReadingStatus.read.displayName, "既読")
+        XCTAssertEqual(ReadingStatus.favorite.displayName, "お気に入り")
+    }
+
+    func testSideMenuItemAssociatedMemoType() {
+        XCTAssertNil(SideMenuItem.favorite.associatedMemoType)
+        XCTAssertEqual(SideMenuItem.idea.associatedMemoType, .idea)
+        XCTAssertEqual(SideMenuItem.thought.associatedMemoType, .thought)
+        XCTAssertEqual(SideMenuItem.todo.associatedMemoType, .todo)
+        XCTAssertEqual(SideMenuItem.other.associatedMemoType, .other)
+    }
+
+    // MARK: - BookmarkRepository Tests
+
+    @MainActor func testBookmarkRepositoryCreate() async throws {
+        let context = makeTestContext()
+        let repository = BookmarkRepository(context: context)
+
+        let bookmark = try repository.create(
+            url: "https://example.com/test",
+            title: "Test Article",
+            domain: "example.com"
+        )
+
+        XCTAssertNotNil(bookmark.id)
+        XCTAssertEqual(bookmark.title, "Test Article")
+        XCTAssertEqual(bookmark.url, "https://example.com/test")
+        XCTAssertEqual(bookmark.domain, "example.com")
+    }
+
+    @MainActor func testBookmarkRepositoryFetchAll() async throws {
+        let context = makeTestContext()
+        let repository = BookmarkRepository(context: context)
+
+        _ = try repository.create(url: "https://a.com", title: "A", domain: "a.com")
+        _ = try repository.create(url: "https://b.com", title: "B", domain: "b.com")
+        _ = try repository.create(url: "https://c.com", title: "C", domain: "c.com")
+
+        let bookmarks = try repository.fetchAll()
+        XCTAssertEqual(bookmarks.count, 3)
+    }
+
+    @MainActor func testBookmarkRepositoryExists() async throws {
+        let context = makeTestContext()
+        let repository = BookmarkRepository(context: context)
+
+        _ = try repository.create(
+            url: "https://existing.com/article",
+            title: "Existing",
+            domain: "existing.com"
+        )
+
+        XCTAssertTrue(repository.exists(url: "https://existing.com/article"))
+        XCTAssertFalse(repository.exists(url: "https://new.com/article"))
+    }
+
+    @MainActor func testBookmarkRepositoryToggleFavorite() async throws {
+        let context = makeTestContext()
+        let repository = BookmarkRepository(context: context)
+
+        let bookmark = try repository.create(
+            url: "https://example.com",
+            title: "Test",
+            domain: "example.com"
+        )
+
+        XCTAssertFalse(bookmark.isFavorite)
+
+        try repository.toggleFavorite(bookmark)
+        XCTAssertTrue(bookmark.isFavorite)
+
+        try repository.toggleFavorite(bookmark)
+        XCTAssertFalse(bookmark.isFavorite)
+    }
+
+    @MainActor func testBookmarkRepositoryDelete() async throws {
+        let context = makeTestContext()
+        let repository = BookmarkRepository(context: context)
+
+        let bookmark = try repository.create(
+            url: "https://delete.com",
+            title: "Delete Me",
+            domain: "delete.com"
+        )
+
+        XCTAssertEqual(try repository.fetchAll().count, 1)
+
+        try repository.delete(bookmark)
+        XCTAssertEqual(try repository.fetchAll().count, 0)
+    }
+
+    // MARK: - FavoriteBlogRepository Tests
+
+    @MainActor func testFavoriteBlogRepositoryCreate() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        let blog = try repository.create(
+            domain: "favorite.com",
+            name: "My Favorite Blog",
+            rssURL: "https://favorite.com/rss"
+        )
+
+        XCTAssertNotNil(blog.id)
+        XCTAssertEqual(blog.domain, "favorite.com")
+        XCTAssertEqual(blog.name, "My Favorite Blog")
+        XCTAssertEqual(blog.rssURL, "https://favorite.com/rss")
+    }
+
+    @MainActor func testFavoriteBlogRepositoryExists() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        _ = try repository.create(
+            domain: "registered.com",
+            name: "Registered Blog",
+            rssURL: nil
+        )
+
+        XCTAssertTrue(repository.exists(domain: "registered.com"))
+        XCTAssertFalse(repository.exists(domain: "unregistered.com"))
+    }
+
+    @MainActor func testFavoriteBlogRepositoryFetchByDomain() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        _ = try repository.create(
+            domain: "findme.com",
+            name: "Find Me Blog",
+            rssURL: nil
+        )
+
+        let found = try repository.fetchByDomain("findme.com")
+        XCTAssertNotNil(found)
+        XCTAssertEqual(found?.name, "Find Me Blog")
+
+        let notFound = try repository.fetchByDomain("notexist.com")
+        XCTAssertNil(notFound)
+    }
+
+    // MARK: - URLValidationService Tests
+
+    @MainActor func testURLValidationServiceValidURL() async {
+        let service = URLValidationService()
+
+        let result = service.validate("https://example.com/article")
+        XCTAssertTrue(result.isValid)
+        XCTAssertEqual(result.domain, "example.com")
+        XCTAssertEqual(result.normalizedURL, "https://example.com/article")
+    }
+
+    @MainActor func testURLValidationServiceAddProtocol() async {
+        let service = URLValidationService()
+
+        let result = service.validate("example.com/article")
+        XCTAssertTrue(result.isValid)
+        XCTAssertEqual(result.normalizedURL, "https://example.com/article")
+    }
+
+    @MainActor func testURLValidationServiceInvalidURL() async {
+        let service = URLValidationService()
+
+        let result1 = service.validate("")
+        XCTAssertFalse(result1.isValid)
+        XCTAssertNotNil(result1.errorMessage)
+
+        let result2 = service.validate("not a url")
+        XCTAssertFalse(result2.isValid)
+    }
+
+    @MainActor func testURLValidationServiceRemoveTrailingSlash() async {
+        let service = URLValidationService()
+
+        let result = service.validate("https://example.com/path/")
+        XCTAssertTrue(result.isValid)
+        XCTAssertEqual(result.normalizedURL, "https://example.com/path")
     }
 }

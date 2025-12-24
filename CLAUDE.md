@@ -190,12 +190,67 @@
 ---
 
 ## 📚 参照ドキュメント
+
+### ベース仕様（Kiro管理）
 | 用途 | ファイルパス |
 |------|-------------|
 | 要件定義 | `.kiro/specs/bookmark-manager/requirements.md` |
 | 設計書 | `.kiro/specs/bookmark-manager/design.md` |
 | タスク計画 | `.kiro/specs/bookmark-manager/tasks.md` |
-| レポート | `reports/YYYY-MM-DD/*.md` |
+
+### 詳細仕様（ベースから派生）
+| 用途 | ファイルパス | 元となるドキュメント |
+|------|-------------|---------------------|
+| ユースケース | `.kiro/specs/bookmark-manager/usecase.md` | requirements.md |
+| 画面設計 | `.kiro/specs/bookmark-manager/screen-design.md` | design.md |
+
+### 運用ドキュメント
+| 用途 | ファイルパス |
+|------|-------------|
+| セッションレポート | `reports/YYYY-MM-DD/*.md` |
+
+### 参照ルール
+- **設計方針**: design.md → screen-design.md の順で確認
+- **要件確認**: requirements.md → usecase.md の順で確認
+- **タスク**: tasks.md に従って実装
+- **仕様変更時**: ベースドキュメントを先に更新し、派生ドキュメントに反映
+
+---
+
+## 🔌 Skills
+`~/.claude/skills/` および `.claude/skills/` を自動参照
+
+### Skills（ファイル構成）
+```
+~/.claude/skills/              # 個人用（全プロジェクト共通）
+├── swift-build/
+│   └── SKILL.md
+└── ios-security/
+    └── SKILL.md
+
+your-project/.claude/skills/   # プロジェクト固有
+├── swiftui-review/
+│   └── SKILL.md
+├── appstore-prep/
+│   └── SKILL.md
+├── macos-security/
+│   └── SKILL.md
+└── mac-appstore-prep/
+    └── SKILL.md
+```
+
+---
+
+## 🔄 作業順序のおすすめ
+```
+1. Claude Code側のSkillsを先に作成
+   ↓
+2. 動作確認（「セキュリティチェックして」等で起動するか）
+   ↓
+3. 動いたSkillの情報をKiroのdesign.mdに反映
+   ↓
+4. CLAUDE.mdにKiro参照を追加
+```
 
 ---
 

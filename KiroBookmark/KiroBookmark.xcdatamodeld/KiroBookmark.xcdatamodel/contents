@@ -4,12 +4,23 @@
         <attribute name="bookmarkedDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="domain" attributeType="String" defaultValueString=""/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isFavorite" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="publishedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="readingStatus" attributeType="String" defaultValueString="unread"/>
         <attribute name="summary" optional="YES" attributeType="String"/>
         <attribute name="title" attributeType="String" defaultValueString=""/>
         <attribute name="url" attributeType="String" defaultValueString=""/>
+        <relationship name="favoriteBlog" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FavoriteBlog" inverseName="articles" inverseEntity="FavoriteBlog"/>
         <relationship name="memos" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TweetMemo" inverseName="bookmark" inverseEntity="TweetMemo"/>
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Tag" inverseName="bookmarks" inverseEntity="Tag"/>
+    </entity>
+    <entity name="FavoriteBlog" representedClassName="FavoriteBlog" syncable="YES" codeGenerationType="class">
+        <attribute name="addedDate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="domain" attributeType="String" defaultValueString=""/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="rssURL" optional="YES" attributeType="String"/>
+        <relationship name="articles" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ArticleBookmark" inverseName="favoriteBlog" inverseEntity="ArticleBookmark"/>
     </entity>
     <entity name="Tag" representedClassName="Tag" syncable="YES" codeGenerationType="class">
         <attribute name="color" optional="YES" attributeType="String"/>
@@ -22,6 +33,11 @@
         <attribute name="content" attributeType="String" defaultValueString=""/>
         <attribute name="createdDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isQuote" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="memoType" attributeType="String" defaultValueString="other"/>
+        <attribute name="selectedText" optional="YES" attributeType="String"/>
+        <attribute name="selectionContext" optional="YES" attributeType="String"/>
+        <attribute name="sourceURL" optional="YES" attributeType="String"/>
         <attribute name="updatedDate" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="bookmark" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ArticleBookmark" inverseName="memos" inverseEntity="ArticleBookmark"/>
     </entity>

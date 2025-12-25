@@ -373,4 +373,231 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertTrue(result.isValid)
         XCTAssertEqual(result.normalizedURL, "https://example.com/path")
     }
+
+    // MARK: - MemoRepository Tests
+
+    @MainActor func testMemoRepositoryCreate() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Create bookmark first
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test Article"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        let memo = try repository.create(
+            content: "Test memo content",
+            memoType: .idea,
+            bookmark: bookmark
+        )
+
+        XCTAssertNotNil(memo.id)
+        XCTAssertEqual(memo.content, "Test memo content")
+        XCTAssertEqual(memo.memoType, MemoType.idea.rawValue)
+        XCTAssertNotNil(memo.createdDate)
+        XCTAssertNotNil(memo.updatedDate)
+        XCTAssertEqual(memo.bookmark, bookmark)
+    }
+
+    @MainActor func testMemoRepositoryCreateQuoteMemo() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test Article"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        let memo = try repository.createQuoteMemo(
+            content: "My comment on this quote",
+            selectedText: "Important text from the article",
+            sourceURL: "https://example.com/article",
+            bookmark: bookmark
+        )
+
+        XCTAssertTrue(memo.isQuote)
+        XCTAssertEqual(memo.memoType, MemoType.quote.rawValue)
+        XCTAssertEqual(memo.selectedText, "Important text from the article")
+        XCTAssertEqual(memo.sourceURL, "https://example.com/article")
+    }
+
+    @MainActor func testMemoRepositoryFetchByBookmark() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        _ = try repository.create(content: "Memo 1", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Memo 2", memoType: .thought, bookmark: bookmark)
+        _ = try repository.create(content: "Memo 3", memoType: .todo, bookmark: bookmark)
+
+        let memos = try repository.fetchByBookmark(bookmark)
+        XCTAssertEqual(memos.count, 3)
+    }
+
+    @MainActor func testMemoRepositoryFetchByMemoType() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        _ = try repository.create(content: "Idea 1", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Idea 2", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Thought", memoType: .thought, bookmark: bookmark)
+
+        let ideaMemos = try repository.fetchByMemoType(.idea)
+        XCTAssertEqual(ideaMemos.count, 2)
+        XCTAssertTrue(ideaMemos.allSatisfy { $0.memoType == MemoType.idea.rawValue })
+    }
+
+    @MainActor func testMemoRepositoryUpdateContent() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        let memo = try repository.create(content: "Original", memoType: .idea, bookmark: bookmark)
+        XCTAssertEqual(memo.content, "Original")
+
+        try repository.updateContent(memo, content: "Updated")
+        XCTAssertEqual(memo.content, "Updated")
+    }
+
+    @MainActor func testMemoRepositoryDelete() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        let memo = try repository.create(content: "To delete", memoType: .idea, bookmark: bookmark)
+        XCTAssertEqual(try repository.fetchByBookmark(bookmark).count, 1)
+
+        try repository.delete(memo)
+        XCTAssertEqual(try repository.fetchByBookmark(bookmark).count, 0)
+    }
+
+    @MainActor func testMemoRepositoryContentValidation() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Valid content (140 chars)
+        let validContent = String(repeating: "a", count: 140)
+        XCTAssertTrue(repository.validateContent(validContent))
+
+        // Invalid content (141 chars)
+        let invalidContent = String(repeating: "a", count: 141)
+        XCTAssertFalse(repository.validateContent(invalidContent))
+    }
+
+    @MainActor func testMemoRepositoryContentTooLongError() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        let longContent = String(repeating: "a", count: 150)
+
+        do {
+            _ = try repository.create(content: longContent, memoType: .idea, bookmark: bookmark)
+            XCTFail("Should throw contentTooLong error")
+        } catch let error as MemoRepositoryError {
+            XCTAssertEqual(error, .contentTooLong)
+        }
+    }
+
+    @MainActor func testMemoRepositoryCountByMemoType() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        _ = try repository.create(content: "Idea 1", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Idea 2", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Thought", memoType: .thought, bookmark: bookmark)
+
+        XCTAssertEqual(repository.countByMemoType(.idea), 2)
+        XCTAssertEqual(repository.countByMemoType(.thought), 1)
+        XCTAssertEqual(repository.countByMemoType(.todo), 0)
+    }
+
+    @MainActor func testMemoRepositoryCountByBookmark() async throws {
+        let context = makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try context.save()
+
+        XCTAssertEqual(repository.countByBookmark(bookmark), 0)
+
+        _ = try repository.create(content: "Memo 1", memoType: .idea, bookmark: bookmark)
+        _ = try repository.create(content: "Memo 2", memoType: .thought, bookmark: bookmark)
+
+        XCTAssertEqual(repository.countByBookmark(bookmark), 2)
+    }
 }

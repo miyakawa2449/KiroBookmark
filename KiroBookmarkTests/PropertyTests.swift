@@ -245,4 +245,189 @@ final class PropertyTests: XCTestCase, Sendable {
             return tags.allSatisfy { bookmarkTags.contains($0) }
         }
     }
+
+    // MARK: - Property 8: Memo Edit Update Record
+    // For any existing memo, when a user edits it,
+    // the system should save the changes and update the modification timestamp
+    // Validates: Requirements 2.4
+
+    @MainActor func testProperty8_MemoEditUpdateRecord() async {
+        let context = self.makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Create bookmark
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try? context.save()
+
+        // Create memo
+        let memo = try? repository.create(
+            content: "Original content",
+            memoType: .idea,
+            bookmark: bookmark
+        )
+
+        guard let memo = memo else {
+            XCTFail("Failed to create memo")
+            return
+        }
+
+        let originalUpdatedDate = memo.updatedDate
+
+        // Wait a moment to ensure timestamp difference
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Update memo content
+        try? repository.updateContent(memo, content: "Updated content")
+
+        // Verify update
+        XCTAssertEqual(memo.content, "Updated content")
+        XCTAssertNotNil(memo.updatedDate)
+        if let originalDate = originalUpdatedDate, let newDate = memo.updatedDate {
+            XCTAssertTrue(newDate > originalDate, "Updated date should be later than original")
+        }
+    }
+
+    // MARK: - Property 9: Memo Deletion Completeness
+    // For any memo with attached photos, when a user deletes it,
+    // both the memo and all attached photos should be completely removed
+    // Validates: Requirements 2.5
+
+    @MainActor func testProperty9_MemoDeletionCompleteness() async {
+        let context = self.makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Create bookmark
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try? context.save()
+
+        // Create memo
+        let memo = try? repository.create(
+            content: "To be deleted",
+            memoType: .todo,
+            bookmark: bookmark
+        )
+
+        guard let memo = memo else {
+            XCTFail("Failed to create memo")
+            return
+        }
+
+        let memoId = memo.id
+
+        // Verify memo exists
+        XCTAssertEqual(repository.countByBookmark(bookmark), 1)
+
+        // Delete memo
+        try? repository.delete(memo)
+
+        // Verify memo is completely removed
+        XCTAssertEqual(repository.countByBookmark(bookmark), 0)
+        let deletedMemo = try? repository.fetchById(memoId!)
+        XCTAssertNil(deletedMemo)
+    }
+
+    // MARK: - Property 10: Memo Chronological Display
+    // For any article with multiple memos,
+    // the memos should be displayed in chronological order based on creation time
+    // Validates: Requirements 2.6
+
+    @MainActor func testProperty10_MemoChronologicalDisplay() async {
+        let context = self.makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Create bookmark
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try? context.save()
+
+        // Create memos with different creation times
+        _ = try? repository.create(content: "First memo", memoType: .idea, bookmark: bookmark)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        _ = try? repository.create(content: "Second memo", memoType: .thought, bookmark: bookmark)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        _ = try? repository.create(content: "Third memo", memoType: .todo, bookmark: bookmark)
+
+        // Fetch memos (should be in chronological order - ascending)
+        let memos = try? repository.fetchByBookmark(bookmark)
+
+        guard let memos = memos, memos.count == 3 else {
+            XCTFail("Expected 3 memos")
+            return
+        }
+
+        // Verify chronological order (oldest first for timeline display)
+        XCTAssertEqual(memos[0].content, "First memo")
+        XCTAssertEqual(memos[1].content, "Second memo")
+        XCTAssertEqual(memos[2].content, "Third memo")
+
+        // Verify dates are in order
+        for i in 0..<(memos.count - 1) {
+            let current = memos[i].createdDate ?? Date.distantPast
+            let next = memos[i + 1].createdDate ?? Date.distantPast
+            XCTAssertTrue(current <= next, "Memos should be in chronological order")
+        }
+    }
+
+    // MARK: - Property 23: Memo Type Filtering
+    // For any memo type, when filtering articles by memo type,
+    // the system should return only articles that have memos of that specific type
+    // Validates: Requirements 13.5
+
+    @MainActor func testProperty23_MemoTypeFiltering() async {
+        let context = self.makeTestContext()
+        let repository = MemoRepository(context: context)
+
+        // Create bookmark
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.title = "Test"
+        bookmark.url = "https://example.com"
+        bookmark.domain = "example.com"
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        try? context.save()
+
+        // Create memos of different types
+        _ = try? repository.create(content: "Idea 1", memoType: .idea, bookmark: bookmark)
+        _ = try? repository.create(content: "Idea 2", memoType: .idea, bookmark: bookmark)
+        _ = try? repository.create(content: "Thought 1", memoType: .thought, bookmark: bookmark)
+        _ = try? repository.create(content: "Todo 1", memoType: .todo, bookmark: bookmark)
+
+        // Test filtering by type
+        let ideaMemos = try? repository.fetchByMemoType(.idea)
+        let thoughtMemos = try? repository.fetchByMemoType(.thought)
+        let todoMemos = try? repository.fetchByMemoType(.todo)
+        let quoteMemos = try? repository.fetchByMemoType(.quote)
+
+        XCTAssertEqual(ideaMemos?.count, 2)
+        XCTAssertEqual(thoughtMemos?.count, 1)
+        XCTAssertEqual(todoMemos?.count, 1)
+        XCTAssertEqual(quoteMemos?.count, 0)
+
+        // Verify all returned memos have correct type
+        XCTAssertTrue(ideaMemos?.allSatisfy { $0.memoType == MemoType.idea.rawValue } ?? false)
+        XCTAssertTrue(thoughtMemos?.allSatisfy { $0.memoType == MemoType.thought.rawValue } ?? false)
+        XCTAssertTrue(todoMemos?.allSatisfy { $0.memoType == MemoType.todo.rawValue } ?? false)
+    }
 }

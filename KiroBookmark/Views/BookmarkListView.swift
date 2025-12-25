@@ -79,7 +79,7 @@ struct BookmarkListView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.systemGroupedBackground)
         .refreshable {
             viewModel.loadBookmarks()
         }

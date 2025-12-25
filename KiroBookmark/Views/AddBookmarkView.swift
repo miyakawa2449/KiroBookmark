@@ -21,7 +21,9 @@ struct AddBookmarkView: View {
                 favoriteBlogSection
             }
             .navigationTitle("ブックマーク追加")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar { toolbarContent }
             .alert("エラー", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("OK") {
@@ -38,9 +40,11 @@ struct AddBookmarkView: View {
     private var urlInputSection: some View {
         Section {
             TextField("https://example.com/article", text: $viewModel.urlString)
+                #if os(iOS)
                 .keyboardType(.URL)
                 .textContentType(.URL)
                 .autocapitalization(.none)
+                #endif
                 .autocorrectionDisabled()
                 .onChange(of: viewModel.urlString) { _, _ in
                     viewModel.validateURL()

@@ -20,7 +20,7 @@ struct BookmarkCardView: View {
             metadataSection
         }
         .padding(16)
-        .background(Color(.systemBackground))
+        .background(Color.systemBackground)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
@@ -77,9 +77,10 @@ struct BookmarkCardView: View {
         }
     }
 
+    @ViewBuilder
     private var readingStatusBadge: some View {
         let status = ReadingStatus(rawValue: bookmark.readingStatus ?? "unread") ?? .unread
-        return HStack(spacing: 4) {
+        HStack(spacing: 4) {
             Image(systemName: status.systemIcon)
                 .font(.caption2)
             Text(status.displayName)
@@ -98,18 +99,17 @@ struct BookmarkCardView: View {
             .foregroundColor(.secondary)
     }
 
+    @ViewBuilder
     private var memoCountBadge: some View {
         let count = (bookmark.memos as? Set<TweetMemo>)?.count ?? 0
-        return Group {
-            if count > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "note.text")
-                        .font(.caption2)
-                    Text("\(count)")
-                        .font(.caption2)
-                }
-                .foregroundColor(.blue)
+        if count > 0 {
+            HStack(spacing: 4) {
+                Image(systemName: "note.text")
+                    .font(.caption2)
+                Text("\(count)")
+                    .font(.caption2)
             }
+            .foregroundColor(.blue)
         }
     }
 
@@ -157,5 +157,4 @@ struct BookmarkCardView: View {
         onDelete: {}
     )
     .padding()
-    .background(Color(.systemGroupedBackground))
 }

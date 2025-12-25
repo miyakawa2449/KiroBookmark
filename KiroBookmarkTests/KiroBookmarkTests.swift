@@ -779,4 +779,139 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertTrue(repository.exists(name: "swift"))
         XCTAssertFalse(repository.exists(name: "Java"))
     }
+
+    // MARK: - ArticleWebViewModel Tests
+
+    @MainActor func testArticleWebViewModelConfiguration() async {
+        let viewModel = ArticleWebViewModel()
+        let testURL = URL(string: "https://example.com/article")!
+
+        viewModel.configure(url: testURL)
+
+        XCTAssertEqual(viewModel.currentURL, testURL)
+        XCTAssertFalse(viewModel.isBookmarked)
+        XCTAssertNil(viewModel.selectedText)
+    }
+
+    @MainActor func testArticleWebViewModelTextSelection() async {
+        let viewModel = ArticleWebViewModel()
+        let testURL = URL(string: "https://example.com")!
+        viewModel.configure(url: testURL)
+
+        // Test selecting text
+        viewModel.handleTextSelection("Selected text")
+        XCTAssertEqual(viewModel.selectedText, "Selected text")
+
+        // Test empty string clears selection
+        viewModel.handleTextSelection("")
+        XCTAssertNil(viewModel.selectedText)
+
+        // Test whitespace-only clears selection
+        viewModel.handleTextSelection("   ")
+        XCTAssertNil(viewModel.selectedText)
+
+        // Test nil clears selection
+        viewModel.handleTextSelection("Some text")
+        XCTAssertEqual(viewModel.selectedText, "Some text")
+        viewModel.handleTextSelection(nil)
+        XCTAssertNil(viewModel.selectedText)
+    }
+
+    @MainActor func testArticleWebViewModelLoadingState() async {
+        let viewModel = ArticleWebViewModel()
+
+        viewModel.updateLoadingState(true)
+        XCTAssertTrue(viewModel.isLoading)
+
+        viewModel.updateLoadingState(false)
+        XCTAssertFalse(viewModel.isLoading)
+    }
+
+    @MainActor func testArticleWebViewModelNavigationState() async {
+        let viewModel = ArticleWebViewModel()
+
+        viewModel.updateNavigationState(canGoBack: true, canGoForward: false)
+        XCTAssertTrue(viewModel.canGoBack)
+        XCTAssertFalse(viewModel.canGoForward)
+
+        viewModel.updateNavigationState(canGoBack: false, canGoForward: true)
+        XCTAssertFalse(viewModel.canGoBack)
+        XCTAssertTrue(viewModel.canGoForward)
+    }
+
+    @MainActor func testArticleWebViewModelError() async {
+        let viewModel = ArticleWebViewModel()
+
+        viewModel.updateLoadingState(true)
+        XCTAssertTrue(viewModel.isLoading)
+
+        viewModel.setError("Page failed to load")
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertEqual(viewModel.errorMessage, "Page failed to load")
+    }
+
+    @MainActor func testArticleWebViewModelScrollDetection() async {
+        let viewModel = ArticleWebViewModel()
+        let testURL = URL(string: "https://example.com")!
+        viewModel.configure(url: testURL)
+
+        // Start scrolling
+        viewModel.handleScrollStart()
+        XCTAssertTrue(viewModel.isScrolling)
+        XCTAssertFalse(viewModel.showBookmarkButton)
+    }
+
+    @MainActor func testArticleWebViewModelBookmarkCheck() async throws {
+        let context = makeTestContext()
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        let viewModel = ArticleWebViewModel(
+            bookmarkRepository: bookmarkRepository,
+            memoRepository: MemoRepository(context: context)
+        )
+
+        let testURL = URL(string: "https://example.com/article")!
+        viewModel.configure(url: testURL)
+
+        // Initially not bookmarked
+        XCTAssertFalse(viewModel.isBookmarked)
+
+        // Create a bookmark
+        _ = try bookmarkRepository.create(
+            url: "https://example.com/article",
+            title: "Test",
+            domain: "example.com"
+        )
+
+        // Check again
+        viewModel.checkIfBookmarked()
+        XCTAssertTrue(viewModel.isBookmarked)
+    }
+
+    @MainActor func testArticleWebViewModelRegisterBookmark() async throws {
+        let context = makeTestContext()
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        let viewModel = ArticleWebViewModel(
+            bookmarkRepository: bookmarkRepository,
+            memoRepository: MemoRepository(context: context)
+        )
+
+        let testURL = URL(string: "https://example.com/new-article")!
+        viewModel.configure(url: testURL)
+        viewModel.updatePageTitle("New Article Title")
+
+        // Register bookmark
+        let bookmark = try viewModel.registerBookmark()
+
+        XCTAssertNotNil(bookmark)
+        XCTAssertEqual(bookmark?.title, "New Article Title")
+        XCTAssertEqual(bookmark?.url, "https://example.com/new-article")
+        XCTAssertTrue(viewModel.isBookmarked)
+        XCTAssertFalse(viewModel.showBookmarkButton)
+
+        // Should not create duplicate
+        let duplicate = try viewModel.registerBookmark()
+        XCTAssertNil(duplicate)
+    }
 }

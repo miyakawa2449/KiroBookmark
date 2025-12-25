@@ -584,4 +584,98 @@ final class PropertyTests: XCTestCase, Sendable {
         XCTAssertEqual(allTags?.count, 1)
         XCTAssertEqual(allTags?.first?.name, "UpdatedName")
     }
+
+    // MARK: - Property 24: Text Selection Accuracy
+    // For any selected text in WebView, the system should accurately
+    // capture the selected text content without modification
+    // Validates: Requirements 19.1
+
+    @MainActor func testProperty24_TextSelectionAccuracy() async {
+        let viewModel = ArticleWebViewModel()
+        let testURL = URL(string: "https://example.com/article")!
+        viewModel.configure(url: testURL)
+
+        // Test various text selections
+        let testTexts = [
+            "Simple text selection",
+            "Text with special chars: <>&\"'",
+            "日本語のテキスト選択",
+            "  Text with whitespace  ",
+            "Multi\nline\ntext"
+        ]
+
+        for originalText in testTexts {
+            viewModel.handleTextSelection(originalText)
+
+            // Whitespace is trimmed, but content should be preserved
+            let trimmedOriginal = originalText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedOriginal.isEmpty {
+                XCTAssertNil(viewModel.selectedText, "Empty text should result in nil")
+            } else {
+                XCTAssertEqual(viewModel.selectedText, trimmedOriginal,
+                    "Selected text should match original (trimmed)")
+            }
+        }
+
+        // Test clearing selection
+        viewModel.handleTextSelection("")
+        XCTAssertNil(viewModel.selectedText, "Empty string should clear selection")
+
+        viewModel.handleTextSelection(nil)
+        XCTAssertNil(viewModel.selectedText, "Nil should clear selection")
+    }
+
+    // MARK: - Property 25: Quote Memo Completeness
+    // For any selected text, when creating a quote memo,
+    // the system should include both the selected text and the source URL
+    // Validates: Requirements 19.3, 19.4
+
+    @MainActor func testProperty25_QuoteMemoCompleteness() async {
+        let context = self.makeTestContext()
+        let memoRepository = MemoRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        // Create bookmark first
+        let bookmark = try? bookmarkRepository.create(
+            url: "https://example.com/article",
+            title: "Test Article",
+            domain: "example.com"
+        )
+
+        guard let bookmark = bookmark else {
+            XCTFail("Failed to create bookmark")
+            return
+        }
+
+        let selectedText = "This is the quoted text from the article"
+        let sourceURL = "https://example.com/article"
+        let memoContent = "My comment about this quote"
+
+        // Create quote memo
+        let quoteMemo = try? memoRepository.createQuoteMemo(
+            content: memoContent,
+            selectedText: selectedText,
+            sourceURL: sourceURL,
+            bookmark: bookmark
+        )
+
+        guard let quoteMemo = quoteMemo else {
+            XCTFail("Failed to create quote memo")
+            return
+        }
+
+        // Verify all required fields are present
+        XCTAssertEqual(quoteMemo.content, memoContent, "Content should match")
+        XCTAssertEqual(quoteMemo.selectedText, selectedText, "Selected text should be preserved")
+        XCTAssertEqual(quoteMemo.sourceURL, sourceURL, "Source URL should be preserved")
+        XCTAssertTrue(quoteMemo.isQuote, "isQuote flag should be true")
+        XCTAssertEqual(quoteMemo.memoType, MemoType.quote.rawValue, "Memo type should be quote")
+        XCTAssertNotNil(quoteMemo.createdDate, "Created date should be set")
+        XCTAssertEqual(quoteMemo.bookmark, bookmark, "Bookmark association should be correct")
+
+        // Verify the quote memo is associated with the bookmark
+        let bookmarkMemos = try? memoRepository.fetchByBookmark(bookmark)
+        XCTAssertEqual(bookmarkMemos?.count, 1)
+        XCTAssertTrue(bookmarkMemos?.first?.isQuote ?? false)
+    }
 }

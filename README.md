@@ -8,14 +8,15 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 
 ## 機能
 
-### Phase 1A（MVP）
+### Phase 1A（MVP）- 完了
 - **2タブナビゲーション**: New Entry / Bookmark
 - **サイドメニュー**: 右スワイプでメモ種類別フィルタ（いいね、アイディア、感想、TODO、その他）
 - **ブックマーク管理**: URL追加・カード表示・削除・お気に入り
 - **メモ機能**: 記事ごとに種類別メモ（140文字制限）
-- **タグ管理**: 記事への複数タグ付け
+- **タグ管理**: 記事への複数タグ付け・使用頻度順表示
 - **WebView**: アプリ内記事表示・テキスト選択・引用メモ作成
-- **動的メニュー**: メモが存在しないメニュー項目の自動非表示
+- **動的メニュー**: メモ種類別フィルタリング
+- **設定画面**: メニューカスタマイズ
 
 ### Phase 1B（予定）
 - RSS自動更新・通知
@@ -39,25 +40,47 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 KiroBookmark/
 ├── Core/
 │   └── PersistenceController.swift
+├── Helpers/
+│   └── ColorExtensions.swift
 ├── Models/
-│   └── Enums.swift              # MemoType, ReadingStatus, MainTabType, SideMenuItem
+│   └── Enums.swift                    # MemoType, ReadingStatus, MainTabType, SideMenuItem
 ├── Repositories/
 │   ├── BookmarkRepository.swift
-│   └── FavoriteBlogRepository.swift
+│   ├── FavoriteBlogRepository.swift
+│   ├── MemoRepository.swift
+│   └── TagRepository.swift
 ├── Services/
 │   └── URLValidationService.swift
 ├── ViewModels/
+│   ├── AddBookmarkViewModel.swift
+│   ├── AddMemoViewModel.swift
+│   ├── ArticleWebViewModel.swift
 │   ├── BookmarkListViewModel.swift
-│   └── AddBookmarkViewModel.swift
+│   ├── HomeViewModel.swift
+│   ├── MemoListViewModel.swift
+│   ├── TagListViewModel.swift
+│   └── TagSelectionViewModel.swift
 ├── Views/
-│   ├── BookmarkListView.swift
+│   ├── AddBookmarkView.swift
+│   ├── AddMemoView.swift
+│   ├── ArticleCardView.swift
+│   ├── ArticleDetailView.swift
+│   ├── ArticleWebView.swift
 │   ├── BookmarkCardView.swift
-│   └── AddBookmarkView.swift
+│   ├── BookmarkListView.swift
+│   ├── HomeView.swift
+│   ├── MemoCardView.swift
+│   ├── MemoListView.swift
+│   ├── QuoteMemoSheet.swift
+│   ├── SettingsView.swift
+│   ├── SideMenuView.swift
+│   ├── TagListView.swift
+│   └── TagSelectionView.swift
 └── KiroBookmark.xcdatamodeld/
 
 KiroBookmarkTests/
-├── PropertyTests.swift          # プロパティベーステスト
-└── KiroBookmarkTests.swift      # ユニットテスト
+├── PropertyTests.swift                # プロパティベーステスト (20テスト)
+└── KiroBookmarkTests.swift            # ユニットテスト (48テスト)
 ```
 
 ## データモデル
@@ -113,15 +136,15 @@ KiroBookmarkTests/
 
 | Task | Status | 内容 |
 |------|--------|------|
-| Task 1 | 完了 | Core Data初期設定 |
-| Task 2 | 完了 | ブックマーク管理機能 |
-| Task 3 | 未着手 | メモ種類別管理機能 |
-| Task 4 | 未着手 | タグ管理機能 |
-| Task 5 | 未着手 | WebView・テキスト選択 |
-| Task 6 | 未着手 | 2タブ+サイドメニュー |
-| Task 7 | 未着手 | MVP完成・検証 |
+| Task 1 | ✅ 完了 | Core Data初期設定 |
+| Task 2 | ✅ 完了 | ブックマーク管理機能 |
+| Task 3 | ✅ 完了 | メモ種類別管理機能 |
+| Task 4 | ✅ 完了 | タグ管理機能 |
+| Task 5 | ✅ 完了 | WebView・テキスト選択 |
+| Task 6 | ✅ 完了 | 2タブ+サイドメニュー |
+| Task 7 | ✅ 完了 | MVP完成・検証 |
 
-**進捗: 2/7 (28%)**
+**進捗: 7/7 (100%) - Phase 1A MVP 完了**
 
 ## セットアップ
 
@@ -138,19 +161,39 @@ open KiroBookmark.xcodeproj
 
 ## テスト
 
-全30テストで品質保証。
+全68テストで品質保証。
 
 ```bash
 # Xcodeでテスト実行
 Cmd + U
+
+# コマンドラインでテスト実行
+xcodebuild test -scheme KiroBookmark -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ### プロパティテスト（SwiftCheck）
-- ブックマーク追加の一貫性
-- URL検証と正規化
-- 重複検出
-- お気に入りブログ検出
-- メモ関連付けの正確性
+- Property 1-6: ブックマーク・URL・重複・お気に入り
+- Property 8-15: メモ・タグ管理
+- Property 23-28: メモ種類フィルタ・WebView・サイドメニュー
+
+### ユニットテスト（XCTest）
+- Repository層: CRUD操作
+- ViewModel層: 状態管理
+- Service層: URL検証
+
+## 既知の制限事項
+
+### Phase 1A での制限
+- RSS自動更新なし（Phase 1Bで実装予定）
+- 検索機能なし（Phase 1Bで実装予定）
+- エクスポート機能なし（Phase 1Bで実装予定）
+- 写真添付なし（テキストメモのみ）
+- データはローカル保存のみ（iCloud同期なし）
+
+### 既知の警告
+- Swift 6 Concurrency警告（動作には影響なし）
+  - MainActor isolated initializer warnings
+  - Phase 1Bでの対応予定
 
 ## ドキュメント
 
@@ -162,6 +205,7 @@ Cmd + U
 | ユースケース | `.kiro/specs/bookmark-manager/usecase.md` |
 | 画面設計 | `.kiro/specs/bookmark-manager/screen-design.md` |
 | Claude Code設定 | `CLAUDE.md` |
+| セッションレポート | `reports/YYYY-MM-DD/*.md` |
 
 ## ライセンス
 

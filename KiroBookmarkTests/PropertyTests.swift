@@ -430,4 +430,158 @@ final class PropertyTests: XCTestCase, Sendable {
         XCTAssertTrue(thoughtMemos?.allSatisfy { $0.memoType == MemoType.thought.rawValue } ?? false)
         XCTAssertTrue(todoMemos?.allSatisfy { $0.memoType == MemoType.todo.rawValue } ?? false)
     }
+
+    // MARK: - Property 13: Tag Deletion Consistency
+    // For any tag associated with articles, when the tag is deleted,
+    // it should be removed from all associated articles
+    // Validates: Requirements 3.3
+
+    @MainActor func testProperty13_TagDeletionConsistency() async {
+        let context = self.makeTestContext()
+        let tagRepository = TagRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        // Create bookmark
+        let bookmark = try? bookmarkRepository.create(
+            url: "https://example.com",
+            title: "Test",
+            domain: "example.com"
+        )
+
+        guard let bookmark = bookmark else {
+            XCTFail("Failed to create bookmark")
+            return
+        }
+
+        // Create tag and associate with bookmark
+        let tag = try? tagRepository.create(name: "TestTag")
+
+        guard let tag = tag else {
+            XCTFail("Failed to create tag")
+            return
+        }
+
+        try? tagRepository.addToBookmark(tag, bookmark: bookmark)
+
+        // Verify association
+        let bookmarkTags = bookmark.tags as? Set<Tag> ?? []
+        XCTAssertTrue(bookmarkTags.contains(tag))
+
+        // Delete tag
+        try? tagRepository.delete(tag)
+
+        // Verify tag is removed from bookmark
+        let updatedBookmarkTags = bookmark.tags as? Set<Tag> ?? []
+        XCTAssertFalse(updatedBookmarkTags.contains(tag))
+        XCTAssertEqual(tagRepository.count(), 0)
+    }
+
+    // MARK: - Property 14: Tag Usage Frequency Order
+    // For any set of tags with different usage counts,
+    // they should be displayed in descending order of usage frequency
+    // Validates: Requirements 3.4
+
+    @MainActor func testProperty14_TagUsageFrequencyOrder() async {
+        let context = self.makeTestContext()
+        let tagRepository = TagRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        // Create tags
+        let tag1 = try? tagRepository.create(name: "LowUsage")
+        let tag2 = try? tagRepository.create(name: "HighUsage")
+        let tag3 = try? tagRepository.create(name: "MediumUsage")
+
+        guard let tag1 = tag1, let tag2 = tag2, let tag3 = tag3 else {
+            XCTFail("Failed to create tags")
+            return
+        }
+
+        // Create bookmarks and associate tags with different frequencies
+        for i in 0..<5 {
+            let bookmark = try? bookmarkRepository.create(
+                url: "https://example.com/\(i)",
+                title: "Test \(i)",
+                domain: "example.com"
+            )
+            guard let bookmark = bookmark else { continue }
+
+            // tag2 (HighUsage) - 5 times
+            try? tagRepository.addToBookmark(tag2, bookmark: bookmark)
+
+            // tag3 (MediumUsage) - 3 times
+            if i < 3 {
+                try? tagRepository.addToBookmark(tag3, bookmark: bookmark)
+            }
+
+            // tag1 (LowUsage) - 1 time
+            if i == 0 {
+                try? tagRepository.addToBookmark(tag1, bookmark: bookmark)
+            }
+        }
+
+        // Fetch sorted by usage
+        let sortedTags = try? tagRepository.fetchAllSortedByUsage()
+
+        guard let sortedTags = sortedTags, sortedTags.count == 3 else {
+            XCTFail("Expected 3 tags")
+            return
+        }
+
+        // Verify order: HighUsage > MediumUsage > LowUsage
+        XCTAssertEqual(sortedTags[0].name, "HighUsage")
+        XCTAssertEqual(sortedTags[1].name, "MediumUsage")
+        XCTAssertEqual(sortedTags[2].name, "LowUsage")
+
+        // Verify usage counts
+        XCTAssertEqual(sortedTags[0].usageCount, 5)
+        XCTAssertEqual(sortedTags[1].usageCount, 3)
+        XCTAssertEqual(sortedTags[2].usageCount, 1)
+    }
+
+    // MARK: - Property 15: Tag Edit Propagation
+    // For any tag associated with multiple articles, when the tag name is edited,
+    // the change should be reflected in all associated articles
+    // Validates: Requirements 3.5
+
+    @MainActor func testProperty15_TagEditPropagation() async {
+        let context = self.makeTestContext()
+        let tagRepository = TagRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        // Create tag
+        let tag = try? tagRepository.create(name: "OriginalName")
+
+        guard let tag = tag else {
+            XCTFail("Failed to create tag")
+            return
+        }
+
+        // Create multiple bookmarks and associate with tag
+        var bookmarks: [ArticleBookmark] = []
+        for i in 0..<3 {
+            let bookmark = try? bookmarkRepository.create(
+                url: "https://example.com/\(i)",
+                title: "Test \(i)",
+                domain: "example.com"
+            )
+            guard let bookmark = bookmark else { continue }
+            try? tagRepository.addToBookmark(tag, bookmark: bookmark)
+            bookmarks.append(bookmark)
+        }
+
+        // Edit tag name
+        try? tagRepository.updateName(tag, name: "UpdatedName")
+
+        // Verify the change is reflected in all bookmarks
+        for bookmark in bookmarks {
+            let bookmarkTags = bookmark.tags as? Set<Tag> ?? []
+            let hasUpdatedTag = bookmarkTags.contains { $0.name == "UpdatedName" }
+            XCTAssertTrue(hasUpdatedTag, "Tag name should be updated for bookmark")
+        }
+
+        // Verify only one tag exists with the new name
+        let allTags = try? tagRepository.fetchAll()
+        XCTAssertEqual(allTags?.count, 1)
+        XCTAssertEqual(allTags?.first?.name, "UpdatedName")
+    }
 }

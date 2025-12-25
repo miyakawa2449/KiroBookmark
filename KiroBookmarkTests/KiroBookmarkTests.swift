@@ -600,4 +600,183 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
 
         XCTAssertEqual(repository.countByBookmark(bookmark), 2)
     }
+
+    // MARK: - TagRepository Tests
+
+    @MainActor func testTagRepositoryCreate() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        let tag = try repository.create(name: "Swift")
+
+        XCTAssertNotNil(tag.id)
+        XCTAssertEqual(tag.name, "Swift")
+        XCTAssertEqual(tag.usageCount, 0)
+    }
+
+    @MainActor func testTagRepositoryCreateIfNotExists() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        let tag1 = try repository.createIfNotExists(name: "Swift")
+        let tag2 = try repository.createIfNotExists(name: "Swift")
+
+        XCTAssertEqual(tag1.id, tag2.id)
+        XCTAssertEqual(repository.count(), 1)
+    }
+
+    @MainActor func testTagRepositoryDuplicatePrevention() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        _ = try repository.create(name: "Swift")
+
+        do {
+            _ = try repository.create(name: "Swift")
+            XCTFail("Should throw duplicate error")
+        } catch let error as TagRepositoryError {
+            XCTAssertEqual(error, .duplicateTag)
+        }
+    }
+
+    @MainActor func testTagRepositoryCaseInsensitiveDuplicate() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        _ = try repository.create(name: "Swift")
+
+        do {
+            _ = try repository.create(name: "SWIFT")
+            XCTFail("Should throw duplicate error for case-insensitive match")
+        } catch let error as TagRepositoryError {
+            XCTAssertEqual(error, .duplicateTag)
+        }
+    }
+
+    @MainActor func testTagRepositoryFetchAllSortedByUsage() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        let tag1 = try repository.create(name: "Low")
+        let tag2 = try repository.create(name: "High")
+
+        let bookmark1 = try bookmarkRepository.create(url: "https://a.com", title: "A", domain: "a.com")
+        let bookmark2 = try bookmarkRepository.create(url: "https://b.com", title: "B", domain: "b.com")
+
+        try repository.addToBookmark(tag2, bookmark: bookmark1)
+        try repository.addToBookmark(tag2, bookmark: bookmark2)
+        try repository.addToBookmark(tag1, bookmark: bookmark1)
+
+        let sorted = try repository.fetchAllSortedByUsage()
+
+        XCTAssertEqual(sorted[0].name, "High")
+        XCTAssertEqual(sorted[1].name, "Low")
+    }
+
+    @MainActor func testTagRepositorySearch() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        _ = try repository.create(name: "Swift")
+        _ = try repository.create(name: "SwiftUI")
+        _ = try repository.create(name: "UIKit")
+
+        let results = try repository.search(query: "Swift")
+
+        XCTAssertEqual(results.count, 2)
+        XCTAssertTrue(results.allSatisfy { ($0.name ?? "").contains("Swift") })
+    }
+
+    @MainActor func testTagRepositoryUpdateName() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        let tag = try repository.create(name: "OldName")
+        try repository.updateName(tag, name: "NewName")
+
+        XCTAssertEqual(tag.name, "NewName")
+    }
+
+    @MainActor func testTagRepositoryIncrementDecrementUsage() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        let tag = try repository.create(name: "Test")
+        XCTAssertEqual(tag.usageCount, 0)
+
+        try repository.incrementUsageCount(tag)
+        XCTAssertEqual(tag.usageCount, 1)
+
+        try repository.incrementUsageCount(tag)
+        XCTAssertEqual(tag.usageCount, 2)
+
+        try repository.decrementUsageCount(tag)
+        XCTAssertEqual(tag.usageCount, 1)
+
+        try repository.decrementUsageCount(tag)
+        XCTAssertEqual(tag.usageCount, 0)
+
+        // Should not go below 0
+        try repository.decrementUsageCount(tag)
+        XCTAssertEqual(tag.usageCount, 0)
+    }
+
+    @MainActor func testTagRepositoryDelete() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        let tag = try repository.create(name: "ToDelete")
+        XCTAssertEqual(repository.count(), 1)
+
+        try repository.delete(tag)
+        XCTAssertEqual(repository.count(), 0)
+    }
+
+    @MainActor func testTagRepositoryAddRemoveFromBookmark() async throws {
+        let context = makeTestContext()
+        let tagRepository = TagRepository(context: context)
+        let bookmarkRepository = BookmarkRepository(context: context)
+
+        let tag = try tagRepository.create(name: "Test")
+        let bookmark = try bookmarkRepository.create(url: "https://example.com", title: "Test", domain: "example.com")
+
+        try tagRepository.addToBookmark(tag, bookmark: bookmark)
+
+        let bookmarkTags = bookmark.tags as? Set<Tag> ?? []
+        XCTAssertTrue(bookmarkTags.contains(tag))
+        XCTAssertEqual(tag.usageCount, 1)
+
+        try tagRepository.removeFromBookmark(tag, bookmark: bookmark)
+
+        let updatedTags = bookmark.tags as? Set<Tag> ?? []
+        XCTAssertFalse(updatedTags.contains(tag))
+        XCTAssertEqual(tag.usageCount, 0)
+    }
+
+    @MainActor func testTagRepositoryValidateName() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        XCTAssertTrue(repository.validateName("Valid"))
+        XCTAssertTrue(repository.validateName("A"))
+        XCTAssertFalse(repository.validateName(""))
+        XCTAssertFalse(repository.validateName("   "))
+
+        let longName = String(repeating: "a", count: 51)
+        XCTAssertFalse(repository.validateName(longName))
+    }
+
+    @MainActor func testTagRepositoryExists() async throws {
+        let context = makeTestContext()
+        let repository = TagRepository(context: context)
+
+        XCTAssertFalse(repository.exists(name: "Swift"))
+
+        _ = try repository.create(name: "Swift")
+
+        XCTAssertTrue(repository.exists(name: "Swift"))
+        XCTAssertTrue(repository.exists(name: "swift"))
+        XCTAssertFalse(repository.exists(name: "Java"))
+    }
 }

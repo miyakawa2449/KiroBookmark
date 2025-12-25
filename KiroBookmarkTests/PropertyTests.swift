@@ -678,4 +678,155 @@ final class PropertyTests: XCTestCase, Sendable {
         XCTAssertEqual(bookmarkMemos?.count, 1)
         XCTAssertTrue(bookmarkMemos?.first?.isQuote ?? false)
     }
+
+    // MARK: - Property 26: Tab Switching Behavior
+    // For any tab selection, when switching between tabs,
+    // the system should correctly update the current tab and filter bookmarks
+    // Validates: Requirements 13.1
+
+    @MainActor func testProperty26_TabSwitchingBehavior() async {
+        let viewModel = HomeViewModel()
+
+        // Initial state should be bookmark tab
+        XCTAssertEqual(viewModel.currentTab, .bookmark)
+        XCTAssertNil(viewModel.selectedMenuItem)
+
+        // Switch to newEntry tab
+        viewModel.selectTab(.newEntry)
+        XCTAssertEqual(viewModel.currentTab, .newEntry)
+        XCTAssertNil(viewModel.selectedMenuItem) // Menu selection should be cleared
+        XCTAssertFalse(viewModel.isSideMenuOpen) // Side menu should be closed
+
+        // Switch back to bookmark tab
+        viewModel.selectTab(.bookmark)
+        XCTAssertEqual(viewModel.currentTab, .bookmark)
+        XCTAssertNil(viewModel.selectedMenuItem)
+
+        // Verify navigation title updates correctly
+        XCTAssertEqual(viewModel.navigationTitle, MainTabType.bookmark.displayName)
+        viewModel.selectTab(.newEntry)
+        XCTAssertEqual(viewModel.navigationTitle, MainTabType.newEntry.displayName)
+    }
+
+    // MARK: - Property 27: Side Menu Filtering
+    // For any side menu item selection, the system should filter bookmarks
+    // by the selected memo type and update the navigation title
+    // Validates: Requirements 13.5
+
+    @MainActor func testProperty27_SideMenuFiltering() async {
+        let context = self.makeTestContext()
+        let bookmarkRepository = BookmarkRepository(context: context)
+        let memoRepository = MemoRepository(context: context)
+        let viewModel = HomeViewModel(
+            bookmarkRepository: bookmarkRepository,
+            memoRepository: memoRepository
+        )
+
+        // Create bookmarks with different memo types
+        let bookmark1 = try? bookmarkRepository.create(
+            url: "https://example.com/1",
+            title: "Article 1",
+            domain: "example.com"
+        )
+        let bookmark2 = try? bookmarkRepository.create(
+            url: "https://example.com/2",
+            title: "Article 2",
+            domain: "example.com"
+        )
+        let bookmark3 = try? bookmarkRepository.create(
+            url: "https://example.com/3",
+            title: "Article 3",
+            domain: "example.com"
+        )
+
+        guard let bookmark1 = bookmark1, let bookmark2 = bookmark2, let bookmark3 = bookmark3 else {
+            XCTFail("Failed to create bookmarks")
+            return
+        }
+
+        // Add memos of different types
+        _ = try? memoRepository.create(content: "Idea memo", memoType: .idea, bookmark: bookmark1)
+        _ = try? memoRepository.create(content: "Todo memo", memoType: .todo, bookmark: bookmark2)
+        _ = try? memoRepository.create(content: "Thought memo", memoType: .thought, bookmark: bookmark3)
+
+        // Mark bookmark1 as favorite
+        try? bookmarkRepository.toggleFavorite(bookmark1)
+
+        // Load data
+        viewModel.loadData()
+
+        // Test side menu open/close
+        XCTAssertFalse(viewModel.isSideMenuOpen)
+        viewModel.openSideMenu()
+        XCTAssertTrue(viewModel.isSideMenuOpen)
+        viewModel.closeSideMenu()
+        XCTAssertFalse(viewModel.isSideMenuOpen)
+
+        // Test menu item counts
+        XCTAssertEqual(viewModel.getMenuItemCount(.favorite), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(.idea), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(.todo), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(.thought), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(.other), 0)
+
+        // Test filtering by favorite
+        viewModel.selectMenuItem(.favorite)
+        XCTAssertEqual(viewModel.selectedMenuItem, .favorite)
+        XCTAssertEqual(viewModel.filteredBookmarks.count, 1)
+        XCTAssertEqual(viewModel.navigationTitle, SideMenuItem.favorite.displayName)
+
+        // Test filtering by memo type
+        viewModel.selectMenuItem(.idea)
+        XCTAssertEqual(viewModel.filteredBookmarks.count, 1)
+        XCTAssertEqual(viewModel.filteredBookmarks.first?.url, "https://example.com/1")
+
+        // Clear menu selection should return to tab filtering
+        viewModel.clearMenuSelection()
+        XCTAssertNil(viewModel.selectedMenuItem)
+        XCTAssertEqual(viewModel.filteredBookmarks.count, 3) // All bookmarks
+    }
+
+    // MARK: - Property 28: Navigation State Management
+    // For any navigation action (tab switch, menu selection),
+    // the system should maintain consistent state across components
+    // Validates: Requirements 13.3
+
+    @MainActor func testProperty28_NavigationStateManagement() async {
+        let viewModel = HomeViewModel()
+
+        // Test initial state
+        XCTAssertEqual(viewModel.currentTab, .bookmark)
+        XCTAssertNil(viewModel.selectedMenuItem)
+        XCTAssertFalse(viewModel.isSideMenuOpen)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.errorMessage)
+
+        // Test side menu open/close (using direct open/close methods to avoid animation issues in tests)
+        viewModel.isSideMenuOpen = true
+        XCTAssertTrue(viewModel.isSideMenuOpen)
+        viewModel.isSideMenuOpen = false
+        XCTAssertFalse(viewModel.isSideMenuOpen)
+
+        // Test that tab selection clears menu selection
+        viewModel.selectedMenuItem = .idea
+        XCTAssertNotNil(viewModel.selectedMenuItem)
+        viewModel.selectTab(.newEntry)
+        XCTAssertNil(viewModel.selectedMenuItem) // Menu should be cleared
+
+        // Test that menu selection updates navigation title
+        viewModel.selectedMenuItem = .thought
+        XCTAssertEqual(viewModel.navigationTitle, SideMenuItem.thought.displayName)
+
+        // Test swipe gesture handling (threshold is 50)
+        viewModel.isSideMenuOpen = false
+        viewModel.handleSwipeGesture(translation: 60, velocity: 0)
+        XCTAssertTrue(viewModel.isSideMenuOpen, "Swipe right should open menu")
+        viewModel.handleSwipeGesture(translation: -60, velocity: 0)
+        XCTAssertFalse(viewModel.isSideMenuOpen, "Swipe left should close menu")
+
+        // Test that visible menu items are populated after loadData
+        viewModel.loadData()
+        XCTAssertFalse(viewModel.visibleMenuItems.isEmpty)
+        XCTAssertEqual(viewModel.visibleMenuItems.count, SideMenuItem.allCases.count)
+    }
 }

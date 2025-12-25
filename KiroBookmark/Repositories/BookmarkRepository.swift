@@ -13,6 +13,7 @@ import CoreData
 protocol BookmarkRepositoryProtocol {
     func create(url: String, title: String, domain: String) throws -> ArticleBookmark
     func fetchAll() throws -> [ArticleBookmark]
+    func fetchAllSortedByActivity() throws -> [ArticleBookmark]
     func fetchById(_ id: UUID) throws -> ArticleBookmark?
     func fetchByURL(_ url: String) throws -> ArticleBookmark?
     func fetchFavorites() throws -> [ArticleBookmark]
@@ -57,6 +58,34 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
         let request = ArticleBookmark.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ArticleBookmark.bookmarkedDate, ascending: false)]
         return try context.fetch(request)
+    }
+
+    func fetchAllSortedByActivity() throws -> [ArticleBookmark] {
+        let bookmarks = try fetchAll()
+
+        // Sort by latest activity (memo date or bookmark date)
+        return bookmarks.sorted { b1, b2 in
+            let date1 = getLatestActivityDate(for: b1)
+            let date2 = getLatestActivityDate(for: b2)
+            return date1 > date2
+        }
+    }
+
+    private func getLatestActivityDate(for bookmark: ArticleBookmark) -> Date {
+        var latestDate = bookmark.bookmarkedDate ?? Date.distantPast
+
+        // Check memo dates
+        if let memos = bookmark.memos as? Set<TweetMemo> {
+            for memo in memos {
+                if let memoDate = memo.updatedDate ?? memo.createdDate {
+                    if memoDate > latestDate {
+                        latestDate = memoDate
+                    }
+                }
+            }
+        }
+
+        return latestDate
     }
 
     func fetchById(_ id: UUID) throws -> ArticleBookmark? {

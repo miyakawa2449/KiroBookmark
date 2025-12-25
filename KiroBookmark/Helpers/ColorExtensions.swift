@@ -47,4 +47,12 @@ extension Color {
         return Color(nsColor: .systemGray)
         #endif
     }
+
+    static var systemGray6: Color {
+        #if canImport(UIKit)
+        return Color(uiColor: .systemGray6)
+        #elseif canImport(AppKit)
+        return Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
 }

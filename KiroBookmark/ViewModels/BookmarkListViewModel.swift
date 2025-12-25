@@ -95,7 +95,7 @@ final class BookmarkListViewModel: ObservableObject {
             try bookmarkRepository.updateReadingStatus(bookmark, status: status)
             loadBookmarks()
         } catch {
-            errorMessage = "読書状態の更新に失敗しました"
+            errorMessage = "閲覧状態の更新に失敗しました"
         }
     }
 

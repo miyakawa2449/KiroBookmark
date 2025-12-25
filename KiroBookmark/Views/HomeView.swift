@@ -244,23 +244,37 @@ struct HomeView: View {
     // MARK: - Swipe Gesture
 
     private var swipeGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 30, coordinateSpace: .global)
             .onChanged { value in
                 dragOffset = value.translation.width
             }
             .onEnded { value in
-                let threshold: CGFloat = 50
+                let translation = value.translation.width
                 let velocity = value.predictedEndLocation.x - value.location.x
+                let startX = value.startLocation.x
 
-                if value.translation.width > threshold || velocity > 100 {
-                    if !viewModel.isSideMenuOpen {
-                        viewModel.openSideMenu()
-                    }
-                } else if value.translation.width < -threshold || velocity < -100 {
-                    if viewModel.isSideMenuOpen {
-                        viewModel.closeSideMenu()
+                print("Swipe detected - startX: \(startX), translation: \(translation), velocity: \(velocity)")
+
+                // Open menu: swipe right from left edge or with strong velocity
+                if !viewModel.isSideMenuOpen {
+                    // Must start near left edge (within 80pt) AND swipe right significantly
+                    if startX < 80 && (translation > 100 || velocity > 300) {
+                        print("Opening side menu")
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            viewModel.openSideMenu()
+                        }
                     }
                 }
+                // Close menu: swipe left when menu is open
+                else {
+                    if translation < -50 || velocity < -100 {
+                        print("Closing side menu")
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            viewModel.closeSideMenu()
+                        }
+                    }
+                }
+
                 dragOffset = 0
             }
     }

@@ -98,7 +98,7 @@ struct BookmarkListView: View {
             )
         }
 
-        Menu("読書状態") {
+        Menu("閲覧状態") {
             ForEach(ReadingStatus.allCases, id: \.self) { status in
                 Button {
                     viewModel.updateReadingStatus(bookmark, status: status)

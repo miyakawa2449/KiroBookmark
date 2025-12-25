@@ -194,7 +194,6 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
 
     func testReadingStatusEnum() {
         XCTAssertEqual(ReadingStatus.unread.displayName, "未読")
-        XCTAssertEqual(ReadingStatus.reading.displayName, "読みかけ")
         XCTAssertEqual(ReadingStatus.read.displayName, "既読")
         XCTAssertEqual(ReadingStatus.favorite.displayName, "お気に入り")
     }

@@ -4,4 +4,10 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:CLAUDE_CODE_INSTRUCTION.md">
+   </FileRef>
+   <FileRef
+      location = "group:CLAUDE_CODE_INSTRUCTION 2.md">
+   </FileRef>
 </Workspace>

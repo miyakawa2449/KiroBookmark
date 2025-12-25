@@ -13,7 +13,7 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 - **Tweet_Memo**: 各記事に追加できるTwitter風の短いメモ（写真最大4枚付き）
 - **Tag**: 記事を分類するためのラベル
 - **Domain_Group**: 同一ドメインの記事をグループ化する機能
-- **Reading_Status**: 未読、既読、読みかけ、お気に入りの状態管理
+- **Reading_Status**: 未読、既読、お気に入りの状態管理
 - **RSS_Feed**: 技術ブログのRSS/Atomフィード
 - **Feed_Detector**: 記事URLからRSSフィードを自動検出するサービス
 - **Memo_Type**: メモの種類（アイディア、感想、TODO、引用、その他）
@@ -94,18 +94,18 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 5. WHEN ユーザーが複合検索を実行する THEN THE Blog_Manager SHALL 複数の条件を組み合わせて検索結果を返す
 6. WHEN 検索結果が表示される THEN THE Blog_Manager SHALL 関連度順で結果を並び替える
 
-### Requirement 6: 読書進捗管理
+### Requirement 6: 記事閲覧状態管理
 
-**User Story:** AIエンジニアとして、技術記事の読書状況を管理したい。未読、既読、読みかけ、お気に入りを区別して効率的に学習したい。
+**User Story:** AIエンジニアとして、技術記事の閲覧状況を管理したい。未読、既読、お気に入りを区別して効率的に学習したい。
 
 #### Acceptance Criteria
 
 1. WHEN 記事がブックマークされる THEN THE Blog_Manager SHALL 初期状態を「未読」に設定する
-2. WHEN ユーザーが記事を開く THEN THE Blog_Manager SHALL 状態を「読みかけ」に変更する
-3. WHEN ユーザーが記事を「既読」に設定する THEN THE Blog_Manager SHALL 読了日時を記録する
+2. WHEN ユーザーが記事を開く THEN THE Blog_Manager SHALL 閲覧日時を記録する
+3. WHEN ユーザーが記事を「既読」に設定する THEN THE Blog_Manager SHALL 既読フラグと日時を記録する
 4. WHEN ユーザーが記事を「お気に入り」に設定する THEN THE Blog_Manager SHALL お気に入りフラグを設定する
-5. WHEN ユーザーが読書状況でフィルタリングする THEN THE Blog_Manager SHALL 指定された状態の記事のみを表示する
-6. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の読書状況を視覚的に区別して表示する
+5. WHEN ユーザーが閲覧状況でフィルタリングする THEN THE Blog_Manager SHALL 指定された状態の記事のみを表示する
+6. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の閲覧状況を視覚的に区別して表示する
 
 ### Requirement 7: 時間経過表示
 

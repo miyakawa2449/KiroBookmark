@@ -95,7 +95,7 @@ KiroBookmarkTests/
 | bookmarkedDate | Date | ブックマーク日時 |
 | publishedDate | Date? | 公開日時 |
 | isFavorite | Bool | お気に入り |
-| readingStatus | String | 読書状態 |
+| readingStatus | String | 閲覧状態（未読/既読/お気に入り） |
 | summary | String? | 要約 |
 
 ### TweetMemo

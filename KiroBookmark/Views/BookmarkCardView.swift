@@ -149,7 +149,7 @@ struct BookmarkCardView: View {
     bookmark.domain = "example.com"
     bookmark.bookmarkedDate = Date()
     bookmark.isFavorite = true
-    bookmark.readingStatus = ReadingStatus.reading.rawValue
+    bookmark.readingStatus = ReadingStatus.unread.rawValue
 
     return BookmarkCardView(
         bookmark: bookmark,

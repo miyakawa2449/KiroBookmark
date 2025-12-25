@@ -51,14 +51,12 @@ enum MemoType: String, CaseIterable, Codable {
 
 enum ReadingStatus: String, CaseIterable, Codable {
     case unread = "unread"
-    case reading = "reading"
     case read = "read"
     case favorite = "favorite"
 
     var displayName: String {
         switch self {
         case .unread: return "未読"
-        case .reading: return "読みかけ"
         case .read: return "既読"
         case .favorite: return "お気に入り"
         }
@@ -67,7 +65,6 @@ enum ReadingStatus: String, CaseIterable, Codable {
     var color: Color {
         switch self {
         case .unread: return .gray
-        case .reading: return .blue
         case .read: return .green
         case .favorite: return .red
         }
@@ -75,8 +72,7 @@ enum ReadingStatus: String, CaseIterable, Codable {
 
     var systemIcon: String {
         switch self {
-        case .unread: return "book.closed"
-        case .reading: return "book"
+        case .unread: return "circle"
         case .read: return "checkmark.circle"
         case .favorite: return "heart.fill"
         }

@@ -14,18 +14,20 @@ struct ArticleCardView: View {
     let onCardTap: () -> Void
 
     var body: some View {
-        Button(action: onCardTap) {
-            VStack(alignment: .leading, spacing: 12) {
-                headerSection
-                titleSection
-                footerSection
-            }
-            .padding(16)
-            .background(Color.systemBackground)
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        VStack(alignment: .leading, spacing: 12) {
+            headerSection
+            titleSection
+            footerSection
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(Color.systemBackground)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            print("Card tapped: \(bookmark.title ?? "no title")")
+            onCardTap()
+        }
     }
 
     // MARK: - Header Section
@@ -48,8 +50,9 @@ struct ArticleCardView: View {
             // Favorite button
             Button(action: onFavoriteTap) {
                 Image(systemName: bookmark.isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 16))
+                    .font(.system(size: 20))
                     .foregroundColor(bookmark.isFavorite ? .red : .secondary)
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
         }

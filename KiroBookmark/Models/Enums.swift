@@ -149,3 +149,35 @@ enum SideMenuItem: String, CaseIterable, Codable {
         }
     }
 }
+
+// MARK: - RSSFeedStatus
+
+enum RSSFeedStatus: String, CaseIterable, Codable {
+    case active = "active"
+    case inactive = "inactive"
+    case error = "error"
+
+    var displayName: String {
+        switch self {
+        case .active: return "有効"
+        case .inactive: return "無効"
+        case .error: return "エラー"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .active: return .green
+        case .inactive: return .gray
+        case .error: return .red
+        }
+    }
+
+    var systemIcon: String {
+        switch self {
+        case .active: return "checkmark.circle.fill"
+        case .inactive: return "pause.circle"
+        case .error: return "exclamationmark.triangle"
+        }
+    }
+}

@@ -10,6 +10,7 @@ import CoreData
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var newEntryViewModel = NewEntryViewModel()
     @State private var showingSettings = false
     @State private var showingAddBookmark = false
     @State private var selectedBookmark: ArticleBookmark?
@@ -64,8 +65,10 @@ struct HomeView: View {
             // Tab Bar
             tabBar
 
-            // Content
-            if viewModel.isLoading {
+            // Content based on current tab
+            if viewModel.currentTab == .newEntry && viewModel.selectedMenuItem == nil {
+                newEntryContent
+            } else if viewModel.isLoading {
                 loadingView
             } else if viewModel.filteredBookmarks.isEmpty {
                 emptyStateView
@@ -74,6 +77,129 @@ struct HomeView: View {
             }
         }
         .background(Color.systemGroupedBackground)
+    }
+
+    // MARK: - New Entry Content
+
+    private var newEntryContent: some View {
+        Group {
+            if newEntryViewModel.isLoading {
+                loadingView
+            } else if !newEntryViewModel.hasRegisteredFeeds {
+                newEntryEmptyNoFeeds
+            } else if newEntryViewModel.articles.isEmpty {
+                newEntryEmptyNoArticles
+            } else {
+                newEntryList
+            }
+        }
+        .onAppear {
+            Task {
+                await newEntryViewModel.refreshFeeds()
+            }
+        }
+    }
+
+    private var newEntryList: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                // Last refresh info
+                if let refreshInfo = newEntryViewModel.formattedLastRefresh() {
+                    HStack {
+                        Text(refreshInfo)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button {
+                            Task {
+                                await newEntryViewModel.refreshFeeds()
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+
+                ForEach(newEntryViewModel.articles) { article in
+                    RSSArticleCardView(
+                        article: article,
+                        onBookmark: {
+                            Task {
+                                _ = await newEntryViewModel.bookmarkArticle(article)
+                            }
+                        }
+                    )
+                }
+            }
+            .padding()
+        }
+        .refreshable {
+            await newEntryViewModel.refreshFeeds()
+        }
+    }
+
+    private var newEntryEmptyNoFeeds: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+
+            Text("RSSフィードがありません")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text("ブックマークを追加すると、自動的にRSSフィードを検出します")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Button {
+                showingAddBookmark = true
+            } label: {
+                Label("ブックマークを追加", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 8)
+
+            Spacer()
+        }
+    }
+
+    private var newEntryEmptyNoArticles: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "newspaper")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+
+            Text("新しい記事はありません")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text("登録済みブログの新着記事がここに表示されます")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Button {
+                Task {
+                    await newEntryViewModel.refreshFeeds()
+                }
+            } label: {
+                Label("更新", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .padding(.top, 8)
+
+            Spacer()
+        }
     }
 
     // MARK: - Tab Bar

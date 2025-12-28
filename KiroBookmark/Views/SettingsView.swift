@@ -95,6 +95,16 @@ struct SettingsView: View {
     private var dataSection: some View {
         Section {
             NavigationLink {
+                RSSFeedListView()
+            } label: {
+                HStack {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .foregroundColor(.orange)
+                    Text("フィード管理")
+                }
+            }
+
+            NavigationLink {
                 DataManagementView()
             } label: {
                 HStack {

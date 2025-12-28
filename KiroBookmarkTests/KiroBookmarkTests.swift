@@ -914,4 +914,96 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         let duplicate = try viewModel.registerBookmark()
         XCTAssertNil(duplicate)
     }
+
+    // MARK: - RSS Tests
+
+    func testRSSArticleCreation() {
+        let url = URL(string: "https://example.com/article")!
+        let article = RSSArticle(
+            title: "Test Article",
+            url: url,
+            publishedDate: Date(),
+            summary: "Summary",
+            blogDomain: "example.com",
+            blogName: "Example Blog",
+            isBookmarked: false
+        )
+
+        XCTAssertEqual(article.title, "Test Article")
+        XCTAssertEqual(article.url, url)
+        XCTAssertEqual(article.blogDomain, "example.com")
+        XCTAssertEqual(article.blogName, "Example Blog")
+        XCTAssertFalse(article.isBookmarked)
+    }
+
+    func testRSSArticleFormattedDate() {
+        let url = URL(string: "https://example.com/article")!
+
+        // Article with date
+        let articleWithDate = RSSArticle(
+            title: "With Date",
+            url: url,
+            publishedDate: Date().addingTimeInterval(-3600),
+            summary: nil,
+            blogDomain: "example.com",
+            blogName: "Blog"
+        )
+        XCTAssertNotNil(articleWithDate.formattedDate)
+
+        // Article without date
+        let articleWithoutDate = RSSArticle(
+            title: "Without Date",
+            url: url,
+            publishedDate: nil,
+            summary: nil,
+            blogDomain: "example.com",
+            blogName: "Blog"
+        )
+        XCTAssertNil(articleWithoutDate.formattedDate)
+    }
+
+    func testRSSFeedStatusEnum() {
+        XCTAssertEqual(RSSFeedStatus.active.displayName, "有効")
+        XCTAssertEqual(RSSFeedStatus.inactive.displayName, "無効")
+        XCTAssertEqual(RSSFeedStatus.error.displayName, "エラー")
+
+        XCTAssertNotNil(RSSFeedStatus.active.systemIcon)
+        XCTAssertNotNil(RSSFeedStatus.active.color)
+    }
+
+    // MARK: - FavoriteBlogRepository RSS Tests
+
+    @MainActor func testFavoriteBlogRepositoryUpdateRSSURL() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        let blog = try repository.create(domain: "example.com", name: "Example", rssURL: nil)
+        XCTAssertNil(blog.rssURL)
+
+        try repository.updateRSSURL(blog, rssURL: "https://example.com/feed")
+        XCTAssertEqual(blog.rssURL, "https://example.com/feed")
+    }
+
+    @MainActor func testFavoriteBlogRepositoryFetchWithRSSURL() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        _ = try repository.create(domain: "example1.com", name: "Example1", rssURL: "https://example1.com/feed")
+        _ = try repository.create(domain: "example2.com", name: "Example2", rssURL: nil)
+        _ = try repository.create(domain: "example3.com", name: "Example3", rssURL: "https://example3.com/feed")
+
+        let blogsWithRSS = try repository.fetchWithRSSURL()
+        XCTAssertEqual(blogsWithRSS.count, 2)
+    }
+
+    @MainActor func testFavoriteBlogRepositoryClearRSSURL() async throws {
+        let context = makeTestContext()
+        let repository = FavoriteBlogRepository(context: context)
+
+        let blog = try repository.create(domain: "example.com", name: "Example", rssURL: "https://example.com/feed")
+        XCTAssertNotNil(blog.rssURL)
+
+        try repository.clearRSSURL(blog)
+        XCTAssertNil(blog.rssURL)
+    }
 }

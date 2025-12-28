@@ -20,23 +20,37 @@ final class AddBookmarkViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     @Published var isFavoriteBlog = false
+    @Published var rssDetectionStatus: RSSDetectionStatus = .notStarted
+
+    // MARK: - RSS Detection Status
+
+    enum RSSDetectionStatus: Equatable {
+        case notStarted
+        case detecting
+        case detected(URL)
+        case notFound
+        case failed(String)
+    }
 
     // MARK: - Dependencies
 
     private let bookmarkRepository: BookmarkRepositoryProtocol
     private let favoriteBlogRepository: FavoriteBlogRepositoryProtocol
     private let urlValidationService: URLValidationServiceProtocol
+    private let rssService: RSSServiceProtocol
 
     // MARK: - Initialization
 
     init(
         bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
         favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        urlValidationService: URLValidationServiceProtocol = URLValidationService()
+        urlValidationService: URLValidationServiceProtocol = URLValidationService(),
+        rssService: RSSServiceProtocol = RSSService()
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.favoriteBlogRepository = favoriteBlogRepository
         self.urlValidationService = urlValidationService
+        self.rssService = rssService
     }
 
     // MARK: - Computed Properties
@@ -108,19 +122,77 @@ final class AddBookmarkViewModel: ObservableObject {
     func addToFavoriteBlogs() async {
         guard let result = validationResult,
               result.isValid,
-              let domain = result.domain else {
+              let domain = result.domain,
+              let normalizedURL = result.normalizedURL else {
             return
         }
 
         if favoriteBlogRepository.exists(domain: domain) {
+            // Existing blog: try to detect RSS if not set
+            await detectRSSForExistingBlog(domain: domain, articleURL: normalizedURL)
             return
         }
 
         do {
-            _ = try favoriteBlogRepository.create(domain: domain, name: domain, rssURL: nil)
+            let blog = try favoriteBlogRepository.create(domain: domain, name: domain, rssURL: nil)
             isFavoriteBlog = true
+
+            // Auto-detect RSS feed for new blog
+            await detectAndSetRSSFeed(for: blog, articleURL: normalizedURL)
         } catch {
             errorMessage = "お気に入りブログの追加に失敗しました"
+        }
+    }
+
+    // MARK: - RSS Detection
+
+    func detectRSSFeed() async {
+        guard let result = validationResult,
+              result.isValid,
+              let normalizedURL = result.normalizedURL,
+              let url = URL(string: normalizedURL) else {
+            return
+        }
+
+        rssDetectionStatus = .detecting
+
+        do {
+            let feedURLs = try await rssService.detectFeed(from: url)
+            if let firstFeed = feedURLs.first {
+                rssDetectionStatus = .detected(firstFeed)
+            } else {
+                rssDetectionStatus = .notFound
+            }
+        } catch {
+            rssDetectionStatus = .failed(error.localizedDescription)
+        }
+    }
+
+    private func detectRSSForExistingBlog(domain: String, articleURL: String) async {
+        guard let blog = try? favoriteBlogRepository.fetchByDomain(domain),
+              blog.rssURL == nil || blog.rssURL?.isEmpty == true,
+              let url = URL(string: articleURL) else {
+            return
+        }
+
+        await detectAndSetRSSFeed(for: blog, articleURL: articleURL)
+    }
+
+    private func detectAndSetRSSFeed(for blog: FavoriteBlog, articleURL: String) async {
+        guard let url = URL(string: articleURL) else { return }
+
+        rssDetectionStatus = .detecting
+
+        do {
+            let feedURLs = try await rssService.detectFeed(from: url)
+            if let firstFeed = feedURLs.first {
+                try favoriteBlogRepository.updateRSSURL(blog, rssURL: firstFeed.absoluteString)
+                rssDetectionStatus = .detected(firstFeed)
+            } else {
+                rssDetectionStatus = .notFound
+            }
+        } catch {
+            rssDetectionStatus = .failed(error.localizedDescription)
         }
     }
 
@@ -130,5 +202,6 @@ final class AddBookmarkViewModel: ObservableObject {
         errorMessage = nil
         successMessage = nil
         isFavoriteBlog = false
+        rssDetectionStatus = .notStarted
     }
 }

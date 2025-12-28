@@ -21,6 +21,11 @@ protocol FavoriteBlogRepositoryProtocol {
     func exists(domain: String) -> Bool
     func associateArticle(_ article: ArticleBookmark, with blog: FavoriteBlog) throws
     func getArticles(for blog: FavoriteBlog) -> [ArticleBookmark]
+
+    // RSS-related methods
+    func updateRSSURL(_ blog: FavoriteBlog, rssURL: String?) throws
+    func fetchWithRSSURL() throws -> [FavoriteBlog]
+    func clearRSSURL(_ blog: FavoriteBlog) throws
 }
 
 // MARK: - FavoriteBlogRepository
@@ -104,6 +109,25 @@ final class FavoriteBlogRepository: FavoriteBlogRepositoryProtocol {
     func getArticles(for blog: FavoriteBlog) -> [ArticleBookmark] {
         let articles = blog.articles as? Set<ArticleBookmark> ?? []
         return articles.sorted { ($0.publishedDate ?? $0.bookmarkedDate!) > ($1.publishedDate ?? $1.bookmarkedDate!) }
+    }
+
+    // MARK: - RSS Methods
+
+    func updateRSSURL(_ blog: FavoriteBlog, rssURL: String?) throws {
+        blog.rssURL = rssURL
+        try context.save()
+    }
+
+    func fetchWithRSSURL() throws -> [FavoriteBlog] {
+        let request = FavoriteBlog.fetchRequest()
+        request.predicate = NSPredicate(format: "rssURL != nil AND rssURL != ''")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FavoriteBlog.addedDate, ascending: false)]
+        return try context.fetch(request)
+    }
+
+    func clearRSSURL(_ blog: FavoriteBlog) throws {
+        blog.rssURL = nil
+        try context.save()
     }
 }
 

@@ -256,9 +256,10 @@ struct HomeView: View {
                 print("Swipe detected - startX: \(startX), translation: \(translation), velocity: \(velocity)")
 
                 // Open menu: swipe right from left edge or with strong velocity
+                // Task6 User Test Fix: スワイプ感度を改善（反応エリア拡大、閾値緩和）
                 if !viewModel.isSideMenuOpen {
-                    // Must start near left edge (within 80pt) AND swipe right significantly
-                    if startX < 80 && (translation > 100 || velocity > 300) {
+                    // Must start near left edge (within 120pt) AND swipe right significantly
+                    if startX < 120 && (translation > 80 || velocity > 200) {
                         print("Opening side menu")
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             viewModel.openSideMenu()

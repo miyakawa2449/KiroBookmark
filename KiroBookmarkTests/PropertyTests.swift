@@ -132,7 +132,7 @@ final class PropertyTests: XCTestCase, Sendable {
     func testProperty5_MemoAssociation() {
         property("Memo is associated with bookmark and has timestamp") <- forAll { (content: String) in
             let context = self.makeTestContext()
-            let safeContent = String(content.prefix(140))
+            let safeContent = String(content.prefix(300))
 
             let bookmark = ArticleBookmark(context: context)
             bookmark.id = UUID()
@@ -161,14 +161,14 @@ final class PropertyTests: XCTestCase, Sendable {
     }
 
     // MARK: - Property 6: Memo Character Limit
-    // For any text input exceeding 140 characters,
+    // For any text input exceeding 300 characters,
     // the system should reject the input (content should be limited)
     // Validates: Requirements 2.2
 
     func testProperty6_MemoCharacterLimit() {
-        property("Memo content respects 140 char limit") <- forAll { (text: String) in
-            let limitedContent = String(text.prefix(140))
-            return limitedContent.count <= 140
+        property("Memo content respects 300 char limit") <- forAll { (text: String) in
+            let limitedContent = String(text.prefix(300))
+            return limitedContent.count <= 300
         }
     }
 

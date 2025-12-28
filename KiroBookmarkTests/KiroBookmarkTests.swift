@@ -522,12 +522,12 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         let context = makeTestContext()
         let repository = MemoRepository(context: context)
 
-        // Valid content (140 chars)
-        let validContent = String(repeating: "a", count: 140)
+        // Valid content (300 chars)
+        let validContent = String(repeating: "a", count: 300)
         XCTAssertTrue(repository.validateContent(validContent))
 
-        // Invalid content (141 chars)
-        let invalidContent = String(repeating: "a", count: 141)
+        // Invalid content (301 chars)
+        let invalidContent = String(repeating: "a", count: 301)
         XCTAssertFalse(repository.validateContent(invalidContent))
     }
 
@@ -545,7 +545,8 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         bookmark.readingStatus = ReadingStatus.unread.rawValue
         try context.save()
 
-        let longContent = String(repeating: "a", count: 150)
+        // Task6 User Test Fix: 文字数制限を300文字に変更したため、301文字でテスト
+        let longContent = String(repeating: "a", count: 301)
 
         do {
             _ = try repository.create(content: longContent, memoType: .idea, bookmark: bookmark)

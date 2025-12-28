@@ -59,10 +59,11 @@ final class URLValidationService: URLValidationServiceProtocol {
             return .invalid("無効なURL形式です")
         }
 
+        // Task6 User Test Fix: HTTPSスキームのみ許可（セキュリティ強化）
         guard let url = URL(string: normalized),
               let scheme = url.scheme,
-              ["http", "https"].contains(scheme.lowercased()) else {
-            return .invalid("HTTPまたはHTTPSのURLを入力してください")
+              scheme.lowercased() == "https" else {
+            return .invalid("https://で始まる正しいURLを入力してください")
         }
 
         guard let domain = extractDomain(from: normalized) else {
@@ -195,7 +196,8 @@ enum URLValidationError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "無効なURLです"
+            // Task6 User Test Fix: より具体的なエラーメッセージ
+            return "無効なURLです。https://で始まる正しいURLを入力してください"
         case .fetchFailed:
             return "ページの取得に失敗しました"
         case .invalidContent:

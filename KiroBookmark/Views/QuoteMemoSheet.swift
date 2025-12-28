@@ -22,7 +22,8 @@ struct QuoteMemoSheet: View {
 
     // MARK: - Constants
 
-    private static let maxCharacterCount = 140
+    // Task6 User Test Fix: 引用メモの文字数制限を140文字から300文字に緩和
+    private static let maxCharacterCount = 300
     private static let memoTypes: [MemoType] = [.quote, .idea, .thought, .todo, .other]
 
     var body: some View {

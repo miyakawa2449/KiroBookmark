@@ -165,7 +165,8 @@ enum BookmarkRepositoryError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "無効なURLです"
+            // Task6 User Test Fix: より具体的なエラーメッセージ
+            return "無効なURLです。https://で始まる正しいURLを入力してください"
         case .duplicateBookmark:
             return "このURLは既にブックマークされています"
         case .bookmarkNotFound:

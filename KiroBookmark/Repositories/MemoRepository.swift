@@ -54,7 +54,8 @@ final class MemoRepository: MemoRepositoryProtocol {
 
     // MARK: - Constants
 
-    static let maxContentLength = 140
+    // Task6 User Test Fix: 引用メモの文字数制限を140文字から300文字に緩和
+    static let maxContentLength = 300
 
     // MARK: - Properties
 

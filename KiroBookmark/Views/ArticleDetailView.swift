@@ -16,15 +16,18 @@ struct ArticleDetailView: View {
     let bookmark: ArticleBookmark
     let onUpdate: () -> Void
 
-    @State private var showingWebView = false
+    // Article Preview UI Improvement: showingWebView を削除
+    // 理由: カードタップで直接WebView表示するため、詳細画面からの遷移は不要
     @State private var showingAddMemo = false
     @State private var showingTagSelection = false
     @State private var showingDeleteConfirmation = false
+    @State private var isFavorite: Bool = false
 
     init(bookmark: ArticleBookmark, onUpdate: @escaping () -> Void) {
         self.bookmark = bookmark
         self.onUpdate = onUpdate
         self._viewModel = StateObject(wrappedValue: ArticleDetailViewModel(bookmark: bookmark))
+        self._isFavorite = State(initialValue: bookmark.isFavorite)
     }
 
     var body: some View {
@@ -62,13 +65,7 @@ struct ArticleDetailView: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $showingWebView) {
-                if let urlString = bookmark.url, let url = URL(string: urlString) {
-                    NavigationStack {
-                        ArticleWebView(url: url, bookmark: bookmark)
-                    }
-                }
-            }
+            // Article Preview UI Improvement: WebView sheet を削除
             .sheet(isPresented: $showingAddMemo) {
                 AddMemoView(bookmark: bookmark) {
                     viewModel.loadData()
@@ -146,48 +143,44 @@ struct ArticleDetailView: View {
     }
 
     // MARK: - Action Buttons
+    // Article Preview UI Improvement: 「記事を読む」ボタンを削除
+    // 理由: カードタップで直接WebView表示するため、このボタンは不要
 
     private var actionButtons: some View {
-        HStack(spacing: 12) {
-            // Open in WebView
-            Button {
-                showingWebView = true
-            } label: {
-                Label("記事を読む", systemImage: "safari")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-
+        HStack(spacing: 16) {
             // Favorite toggle
             Button {
+                isFavorite.toggle()
                 viewModel.toggleFavorite()
                 onUpdate()
             } label: {
-                Image(systemName: bookmark.isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 20))
-                    .foregroundColor(bookmark.isFavorite ? .red : .secondary)
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .font(.system(size: 24))
+                    .foregroundColor(isFavorite ? .red : .secondary)
+                    .frame(width: 44, height: 44)
             }
-            .buttonStyle(.bordered)
 
             // Add memo
             Button {
                 showingAddMemo = true
             } label: {
-                Image(systemName: "plus.bubble")
-                    .font(.system(size: 20))
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 24))
+                    .foregroundColor(.blue)
+                    .frame(width: 44, height: 44)
             }
-            .buttonStyle(.bordered)
 
             // Add tag
             Button {
                 showingTagSelection = true
             } label: {
                 Image(systemName: "tag")
-                    .font(.system(size: 20))
+                    .font(.system(size: 24))
+                    .foregroundColor(.blue)
+                    .frame(width: 44, height: 44)
             }
-            .buttonStyle(.bordered)
         }
+        .padding(.vertical, 8)
     }
 
     // MARK: - Tags Section

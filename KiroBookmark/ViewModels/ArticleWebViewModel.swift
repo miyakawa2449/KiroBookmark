@@ -32,6 +32,12 @@ final class ArticleWebViewModel: ObservableObject {
     @Published var showBookmarkButton = false
     @Published var isBookmarked = false
 
+    // Toolbar State (Task 2/3: Article Preview UI Improvement)
+    @Published var isFavorite = false
+    @Published var showingMemoSheet = false
+    @Published var showingDetailView = false
+    @Published var preselectedMemoType: MemoType? = nil  // Task 3: メモタイプ事前選択
+
     // MARK: - Properties
 
     private let bookmarkRepository: BookmarkRepositoryProtocol
@@ -68,6 +74,7 @@ final class ArticleWebViewModel: ObservableObject {
             self.currentURL = url
         }
         self.isBookmarked = true
+        self.isFavorite = bookmark.isFavorite
     }
 
     // MARK: - WebView State Updates
@@ -215,6 +222,38 @@ final class ArticleWebViewModel: ObservableObject {
         if bookmark != nil {
             isBookmarked = true
         }
+    }
+
+    // MARK: - Toolbar Actions (Task 2: Article Preview UI Improvement)
+
+    /// Toggle favorite status for the current bookmark
+    func toggleFavorite() {
+        guard let bookmark = bookmark else { return }
+
+        do {
+            try bookmarkRepository.toggleFavorite(bookmark)
+            isFavorite = bookmark.isFavorite
+        } catch {
+            print("Failed to toggle favorite: \(error)")
+        }
+    }
+
+    /// Task 3: Open memo sheet with TODO type preselected
+    func addQuickTodo() {
+        preselectedMemoType = .todo
+        showingMemoSheet = true
+    }
+
+    /// Task 3: Open memo sheet for regular memo
+    func openMemoSheet() {
+        preselectedMemoType = nil
+        showingMemoSheet = true
+    }
+
+    /// Enable text selection mode for quote creation
+    func enableTextSelection() {
+        // Text selection is already enabled in WebView
+        // This can be enhanced to show visual feedback
     }
 }
 

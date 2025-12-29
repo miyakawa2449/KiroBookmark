@@ -12,6 +12,12 @@ struct ArticleCardView: View {
     let bookmark: ArticleBookmark
     let onFavoriteTap: () -> Void
     let onCardTap: () -> Void
+    var onAddMemo: (() -> Void)? = nil
+    var onEditTags: (() -> Void)? = nil
+    var onShowDetail: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
+    @State private var showQuickActions = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -27,6 +33,74 @@ struct ArticleCardView: View {
         .onTapGesture {
             print("Card tapped: \(bookmark.title ?? "no title")")
             onCardTap()
+        }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            #if os(iOS)
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            #endif
+            showQuickActions = true
+        }
+        .confirmationDialog("クイックアクション", isPresented: $showQuickActions) {
+            quickActionsMenu
+        }
+    }
+
+    // MARK: - Quick Actions Menu
+
+    @ViewBuilder
+    private var quickActionsMenu: some View {
+        // 記事を読む
+        Button {
+            onCardTap()
+        } label: {
+            Label("記事を読む", systemImage: "doc.text")
+        }
+
+        // メモを追加
+        if let onAddMemo = onAddMemo {
+            Button {
+                onAddMemo()
+            } label: {
+                Label("メモを追加", systemImage: "square.and.pencil")
+            }
+        }
+
+        // タグを編集
+        if let onEditTags = onEditTags {
+            Button {
+                onEditTags()
+            } label: {
+                Label("タグを編集", systemImage: "tag")
+            }
+        }
+
+        // お気に入り
+        Button {
+            onFavoriteTap()
+        } label: {
+            Label(
+                bookmark.isFavorite ? "お気に入りを解除" : "お気に入りに追加",
+                systemImage: bookmark.isFavorite ? "heart.slash" : "heart"
+            )
+        }
+
+        // 詳細を見る
+        if let onShowDetail = onShowDetail {
+            Button {
+                onShowDetail()
+            } label: {
+                Label("詳細を見る", systemImage: "info.circle")
+            }
+        }
+
+        // 削除
+        if let onDelete = onDelete {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("削除", systemImage: "trash")
+            }
         }
     }
 

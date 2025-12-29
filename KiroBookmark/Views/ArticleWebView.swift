@@ -23,9 +23,17 @@ struct ArticleWebView: View {
     }
 
     var body: some View {
-        ZStack {
-            webViewContent
-            overlayContent
+        VStack(spacing: 0) {
+            // WebView with overlays
+            ZStack {
+                webViewContent
+                overlayContent
+            }
+
+            // Task 2: Article Preview UI Improvement - Action Toolbar
+            #if os(iOS)
+            actionToolbar
+            #endif
         }
         .navigationTitle(viewModel.pageTitle ?? "記事")
         #if os(iOS)
@@ -44,6 +52,26 @@ struct ArticleWebView: View {
         .sheet(isPresented: $viewModel.showingQuoteMemoSheet) {
             quoteMemoSheet
         }
+        .sheet(isPresented: $viewModel.showingMemoSheet) {
+            if let bookmark = bookmark {
+                // Task 3: 事前選択対応
+                AddMemoSheet(
+                    bookmark: bookmark,
+                    preselectedType: viewModel.preselectedMemoType,
+                    onDismiss: {
+                        viewModel.showingMemoSheet = false
+                        viewModel.preselectedMemoType = nil
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $viewModel.showingDetailView) {
+            if let bookmark = bookmark {
+                NavigationStack {
+                    ArticleDetailView(bookmark: bookmark, onUpdate: {})
+                }
+            }
+        }
     }
 
     // MARK: - WebView Content
@@ -53,7 +81,6 @@ struct ArticleWebView: View {
             url: url,
             viewModel: viewModel
         )
-        .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: - Overlay Content
@@ -247,6 +274,63 @@ struct ArticleWebView: View {
             }
         }
     }
+
+    // MARK: - Action Toolbar (Task 2: Article Preview UI Improvement)
+
+    #if os(iOS)
+    private var actionToolbar: some View {
+        HStack(spacing: 0) {
+            // メモボタン
+            ActionToolbarButton(
+                icon: "square.and.pencil",
+                label: "メモ",
+                action: { viewModel.openMemoSheet() }
+            )
+
+            toolbarDivider
+
+            // TODOボタン
+            ActionToolbarButton(
+                icon: "checkmark.circle",
+                label: "TODO",
+                action: { viewModel.addQuickTodo() }
+            )
+
+            toolbarDivider
+
+            // お気に入りボタン
+            ActionToolbarButton(
+                icon: viewModel.isFavorite ? "heart.fill" : "heart",
+                label: "お気に入り",
+                isActive: viewModel.isFavorite,
+                activeColor: .red,
+                action: { viewModel.toggleFavorite() }
+            )
+
+            toolbarDivider
+
+            // 詳細ボタン
+            ActionToolbarButton(
+                icon: "info.circle",
+                label: "詳細",
+                action: { viewModel.showingDetailView = true }
+            )
+        }
+        .frame(height: 64)
+        .background(Color(.systemBackground))
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundColor(Color(.separator)),
+            alignment: .top
+        )
+    }
+
+    private var toolbarDivider: some View {
+        Divider()
+            .frame(height: 24)
+    }
+    #endif
 
     // MARK: - Actions
 
@@ -496,6 +580,37 @@ struct WebViewRepresentable: NSViewRepresentable {
                 }
             }
         }
+    }
+}
+#endif
+
+// MARK: - Action Toolbar Button Component (Task 2: Article Preview UI Improvement)
+
+#if os(iOS)
+struct ActionToolbarButton: View {
+    let icon: String
+    let label: String
+    var isActive: Bool = false
+    var activeColor: Color = .blue
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(isActive ? activeColor : .primary)
+
+                Text(label)
+                    .font(.caption2)
+                    .foregroundColor(isActive ? activeColor : .secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityHint("タップして\(label)を実行")
     }
 }
 #endif

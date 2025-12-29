@@ -13,12 +13,18 @@ struct HomeView: View {
     @StateObject private var newEntryViewModel = NewEntryViewModel()
     @State private var showingSettings = false
     @State private var showingAddBookmark = false
-    @State private var selectedBookmark: ArticleBookmark?
-    @State private var showingWebView = false
+    @State private var selectedBookmarkForDetail: ArticleBookmark?  // For ArticleDetailView (Task 2 toolbar)
+    @State private var navigationPath = NavigationPath()  // For WebView navigation
     @State private var dragOffset: CGFloat = 0
 
+    // Task 4: Quick Actions from long press menu
+    @State private var selectedBookmarkForMemo: ArticleBookmark?
+    @State private var selectedBookmarkForTags: ArticleBookmark?
+    @State private var bookmarkToDelete: ArticleBookmark?
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 // Main Content
                 mainContent
@@ -37,6 +43,12 @@ struct HomeView: View {
             .toolbar {
                 toolbarContent
             }
+            // Article Preview UI Improvement: カードタップで直接WebView表示
+            .navigationDestination(for: ArticleBookmark.self) { bookmark in
+                if let urlString = bookmark.url, let url = URL(string: urlString) {
+                    ArticleWebView(url: url, bookmark: bookmark)
+                }
+            }
             .onAppear {
                 viewModel.loadData()
             }
@@ -50,10 +62,42 @@ struct HomeView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
-            .sheet(item: $selectedBookmark) { bookmark in
+            .sheet(item: $selectedBookmarkForDetail) { bookmark in
                 ArticleDetailView(bookmark: bookmark, onUpdate: {
                     viewModel.loadData()
                 })
+            }
+            // Task 4: Quick Action sheets
+            .sheet(item: $selectedBookmarkForMemo) { bookmark in
+                AddMemoSheet(
+                    bookmark: bookmark,
+                    onDismiss: {
+                        selectedBookmarkForMemo = nil
+                        viewModel.loadData()
+                    }
+                )
+            }
+            .sheet(item: $selectedBookmarkForTags) { bookmark in
+                TagSelectionView(
+                    bookmark: bookmark,
+                    onSave: {
+                        selectedBookmarkForTags = nil
+                        viewModel.loadData()
+                    }
+                )
+            }
+            .alert("ブックマークを削除", isPresented: $showDeleteConfirmation) {
+                Button("キャンセル", role: .cancel) {
+                    bookmarkToDelete = nil
+                }
+                Button("削除", role: .destructive) {
+                    if let bookmark = bookmarkToDelete {
+                        viewModel.deleteBookmark(bookmark)
+                        bookmarkToDelete = nil
+                    }
+                }
+            } message: {
+                Text("このブックマークを削除してもよろしいですか？")
             }
         }
     }
@@ -248,13 +292,28 @@ struct HomeView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.filteredBookmarks, id: \.id) { bookmark in
+                    // Article Preview UI Improvement: カードタップで直接WebView表示
+                    // Task 4: ロングプレスメニュー対応
                     ArticleCardView(
                         bookmark: bookmark,
                         onFavoriteTap: {
                             viewModel.toggleFavorite(bookmark)
                         },
                         onCardTap: {
-                            selectedBookmark = bookmark
+                            navigationPath.append(bookmark)
+                        },
+                        onAddMemo: {
+                            selectedBookmarkForMemo = bookmark
+                        },
+                        onEditTags: {
+                            selectedBookmarkForTags = bookmark
+                        },
+                        onShowDetail: {
+                            selectedBookmarkForDetail = bookmark
+                        },
+                        onDelete: {
+                            bookmarkToDelete = bookmark
+                            showDeleteConfirmation = true
                         }
                     )
                     .contextMenu {

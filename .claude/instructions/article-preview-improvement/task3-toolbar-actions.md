@@ -12,7 +12,7 @@
 |--------|-----------|-----------|--------|
 | 📝 メモ | メモ追加モーダル表示 | 低 | 高 |
 | 💭 引用 | テキスト選択モード | 中 | 高 |
-| ✅ TODO | クイックTODO追加 | 低 | 中 |
+| ✅ TODO | TODO追加シート表示 | 低 | 中 |
 | ⭐ お気に入り | トグル | 低 | 中 |
 | 📋 詳細 | 記事詳細画面へ遷移 | 低 | 低 |
 
@@ -320,34 +320,116 @@ struct ArticleWebView: View {
 
 ---
 
-### アクション3: クイックTODO追加（✅）
+### アクション3: TODO追加（✅）
 
 #### 実装方法
+
+TODOボタンをタップすると、メモ追加シートが**TODOタイプが事前選択された状態**で表示されます。
 
 **ファイル**: `KiroBookmark/ViewModels/ArticleWebViewModel.swift`
 
 ```swift
 // ArticleWebViewModel.swift内
-@Published var showTodoSuccess = false
+@Published var preselectedMemoType: MemoType? = nil
 
 func addQuickTodo() {
-    Task {
-        do {
-            // 空のTODOメモを作成
-            try await memoRepository.addMemo(
-                to: bookmark.id,
-                content: "TODO: この記事を確認",
-                type: .todo
-            )
-            
-            // 成功通知
-            showTodoSuccess = true
-            
-            // 2秒後に非表示
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            showTodoSuccess = false
-        } catch {
-            print("Failed to add TODO: \(error)")
+    // メモ追加シートをTODOモードで表示
+    preselectedMemoType = .todo
+    showMemoSheet = true
+}
+```
+
+#### AddMemoSheet.swiftの拡張
+
+**ファイル**: `KiroBookmark/Views/AddMemoSheet.swift`
+
+AddMemoSheetに事前選択機能を追加します：
+
+```swift
+struct AddMemoSheet: View {
+    let bookmark: ArticleBookmark
+    let preselectedType: MemoType?  // 事前選択されたメモタイプ
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: AddMemoViewModel
+    
+    @State private var memoContent = ""
+    @State private var selectedMemoType: MemoType
+    
+    init(bookmark: ArticleBookmark, preselectedType: MemoType? = nil) {
+        self.bookmark = bookmark
+        self.preselectedType = preselectedType
+        _viewModel = StateObject(wrappedValue: AddMemoViewModel(bookmark: bookmark))
+        
+        // 事前選択がある場合はそれを使用、なければ.idea
+        _selectedMemoType = State(initialValue: preselectedType ?? .idea)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                // メモ種類選択
+                memoTypeSelector
+                
+                // メモ入力
+                TextEditor(text: $memoContent)
+                    .frame(minHeight: 150)
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                
+                // 文字数カウンター
+                HStack {
+                    Spacer()
+                    Text("\(memoContent.count)/300")
+                        .font(.caption)
+                        .foregroundColor(memoContent.count > 300 ? .red : .secondary)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle(preselectedType == .todo ? "TODOを追加" : "メモを追加")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("追加") {
+                        addMemo()
+                    }
+                    .disabled(memoContent.isEmpty || memoContent.count > 300)
+                }
+            }
+        }
+    }
+    
+    private var memoTypeSelector: some View {
+        HStack(spacing: 12) {
+            ForEach(MemoType.allCases, id: \.self) { type in
+                MemoTypeButton(
+                    type: type,
+                    isSelected: selectedMemoType == type,
+                    action: { selectedMemoType = type }
+                )
+            }
+        }
+    }
+    
+    private func addMemo() {
+        Task {
+            do {
+                try await viewModel.addMemo(
+                    content: memoContent,
+                    type: selectedMemoType
+                )
+                dismiss()
+            } catch {
+                // エラーハンドリング
+                print("Failed to add memo: \(error)")
+            }
         }
     }
 }
@@ -360,45 +442,46 @@ struct ArticleWebView: View {
     // ... 既存のコード
     
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                // WebView
-                WebView(url: bookmark.url)
-                
-                // ツールバー
-                toolbarView
-            }
+        VStack(spacing: 0) {
+            // WebView
+            WebView(url: bookmark.url)
             
-            // TODO追加成功通知
-            if viewModel.showTodoSuccess {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("TODOを追加しました")
-                            .font(.subheadline)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(10)
-                    .shadow(radius: 5)
-                    .padding(.bottom, 80)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.spring(), value: viewModel.showTodoSuccess)
-            }
+            // ツールバー
+            toolbarView
+        }
+        // メモ追加シート（事前選択対応）
+        .sheet(isPresented: $viewModel.showMemoSheet) {
+            AddMemoSheet(
+                bookmark: bookmark,
+                preselectedType: viewModel.preselectedMemoType
+            )
         }
         // ... 既存のコード
     }
 }
 ```
 
+#### ツールバーボタンの実装
+
+```swift
+// TODOボタン
+ToolbarButton(
+    icon: "checkmark.square",
+    label: "TODO",
+    action: { viewModel.addQuickTodo() }
+)
+```
+
 #### テスト手順
 1. TODOボタンをタップ
-2. **成功通知が表示される** ✅
-3. **2秒後に通知が消える** ✅
-4. 記事詳細画面でTODOメモが追加されていることを確認 ✅
+2. **メモ追加シートが表示される** ✅
+3. **メモタイプが「TODO」に事前選択されている** ✅
+4. **ナビゲーションタイトルが「TODOを追加」になっている** ✅
+5. TODO内容を入力
+6. 「追加」ボタンをタップ
+7. **TODOメモが保存される** ✅
+8. **シートが閉じる** ✅
+9. 記事詳細画面でTODOメモが追加されていることを確認 ✅
 
 ---
 
@@ -497,7 +580,8 @@ ToolbarButton(
    - [ ] 引用メモが保存される
 
 3. **TODO追加**
-   - [ ] 成功通知が表示される
+   - [ ] メモ追加シートが表示される
+   - [ ] TODOタイプが事前選択されている
    - [ ] TODOメモが追加される
 
 4. **お気に入り**
@@ -585,7 +669,7 @@ generator.impactOccurred()
 - ✅ 全てのツールバーボタンが動作する
 - ✅ メモ追加がスムーズ
 - ✅ 引用メモが作成できる
-- ✅ TODOが素早く追加できる
+- ✅ TODOが素早く追加できる（メモシート経由）
 - ✅ お気に入りがトグルできる
 - ✅ 詳細画面に遷移できる
 

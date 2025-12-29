@@ -13,6 +13,7 @@ struct HomeView: View {
     @StateObject private var newEntryViewModel = NewEntryViewModel()
     @State private var showingSettings = false
     @State private var showingAddBookmark = false
+    @State private var showingSearch = false
     @State private var selectedBookmarkForDetail: ArticleBookmark?  // For ArticleDetailView (Task 2 toolbar)
     @State private var navigationPath = NavigationPath()  // For WebView navigation
     @State private var dragOffset: CGFloat = 0
@@ -61,6 +62,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showingSearch) {
+                SearchView()
             }
             .sheet(item: $selectedBookmarkForDetail) { bookmark in
                 ArticleDetailView(bookmark: bookmark, onUpdate: {
@@ -474,13 +478,17 @@ struct HomeView: View {
             menuButton
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            addButton
+            HStack(spacing: 16) {
+                searchButton
+                addButton
+            }
         }
         #else
         ToolbarItem(placement: .automatic) {
             HStack {
                 menuButton
                 Spacer()
+                searchButton
                 addButton
             }
         }
@@ -492,6 +500,15 @@ struct HomeView: View {
             viewModel.toggleSideMenu()
         } label: {
             Image(systemName: "line.3.horizontal")
+                .font(.system(size: 18))
+        }
+    }
+
+    private var searchButton: some View {
+        Button {
+            showingSearch = true
+        } label: {
+            Image(systemName: "magnifyingglass")
                 .font(.system(size: 18))
         }
     }

@@ -42,6 +42,11 @@ struct ArticleWebView: View {
         .toolbar {
             toolbarContent
         }
+        .toast(
+            isPresented: $viewModel.showToast,
+            message: viewModel.toastMessage,
+            type: viewModel.toastType
+        )
         .onAppear {
             if let bookmark = bookmark {
                 viewModel.configure(bookmark: bookmark)
@@ -280,6 +285,26 @@ struct ArticleWebView: View {
     #if os(iOS)
     private var actionToolbar: some View {
         HStack(spacing: 0) {
+            if viewModel.isUserBookmarked {
+                // User Bookmark: Show full action buttons
+                bookmarkActionToolbar
+            } else {
+                // New Entry: Show save button
+                newEntryActionToolbar
+            }
+        }
+        .frame(height: 64)
+        .background(Color(.systemBackground))
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundColor(Color(.separator)),
+            alignment: .top
+        )
+    }
+
+    private var bookmarkActionToolbar: some View {
+        Group {
             // メモボタン
             ActionToolbarButton(
                 icon: "square.and.pencil",
@@ -316,14 +341,39 @@ struct ArticleWebView: View {
                 action: { viewModel.showingDetailView = true }
             )
         }
-        .frame(height: 64)
-        .background(Color(.systemBackground))
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundColor(Color(.separator)),
-            alignment: .top
-        )
+    }
+
+    private var newEntryActionToolbar: some View {
+        Group {
+            // 保存ボタン (New Entry用)
+            ActionToolbarButton(
+                icon: "bookmark.fill",
+                label: "保存",
+                isActive: false,
+                activeColor: .blue,
+                action: { addToBookmark() }
+            )
+
+            toolbarDivider
+
+            // シェアボタン
+            if let url = viewModel.currentURL {
+                ShareLink(item: url) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 20))
+                            .foregroundColor(.primary)
+
+                        Text("共有")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private var toolbarDivider: some View {
@@ -342,6 +392,11 @@ struct ArticleWebView: View {
         } catch {
             // Handle error
         }
+    }
+
+    /// Add New Entry article to user bookmarks
+    private func addToBookmark() {
+        viewModel.addToBookmark()
     }
 }
 

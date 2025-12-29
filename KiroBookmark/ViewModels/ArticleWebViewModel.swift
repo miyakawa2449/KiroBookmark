@@ -37,6 +37,12 @@ final class ArticleWebViewModel: ObservableObject {
     @Published var showingMemoSheet = false
     @Published var showingDetailView = false
     @Published var preselectedMemoType: MemoType? = nil  // Task 3: メモタイプ事前選択
+    @Published var isUserBookmarked = true  // New Entry/Bookmark separation
+
+    // Toast notification
+    @Published var showToast = false
+    @Published var toastMessage = ""
+    @Published var toastType: ToastView.ToastType = .success
 
     // MARK: - Properties
 
@@ -75,6 +81,26 @@ final class ArticleWebViewModel: ObservableObject {
         }
         self.isBookmarked = true
         self.isFavorite = bookmark.isFavorite
+        self.isUserBookmarked = bookmark.isUserBookmarked
+
+        // Mark as read when article is opened
+        markAsRead()
+    }
+
+    // MARK: - Reading Status
+
+    /// Mark the current bookmark as read
+    private func markAsRead() {
+        guard let bookmark = bookmark else { return }
+
+        // Only update if currently unread
+        if bookmark.readingStatus == ReadingStatus.unread.rawValue {
+            do {
+                try bookmarkRepository.updateReadingStatus(bookmark, status: .read)
+            } catch {
+                print("Failed to mark as read: \(error)")
+            }
+        }
     }
 
     // MARK: - WebView State Updates
@@ -209,6 +235,29 @@ final class ArticleWebViewModel: ObservableObject {
         self.showBookmarkButton = false
 
         return newBookmark
+    }
+
+    /// Add New Entry article to user bookmarks (New Entry/Bookmark separation)
+    func addToBookmark() {
+        guard let bookmark = bookmark, !isUserBookmarked else { return }
+
+        do {
+            try bookmarkRepository.addToBookmark(bookmark)
+
+            // Update state
+            isUserBookmarked = true
+
+            // Show success toast
+            toastMessage = "ブックマークに登録しました"
+            toastType = .success
+            showToast = true
+
+        } catch {
+            // Show error toast
+            toastMessage = "ブックマークの追加に失敗しました"
+            toastType = .error
+            showToast = true
+        }
     }
 
     // MARK: - Utility

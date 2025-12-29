@@ -16,6 +16,7 @@ struct ArticleCardView: View {
     var onEditTags: (() -> Void)? = nil
     var onShowDetail: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
+    var onAddBookmark: (() -> Void)? = nil  // New Entry用ブックマーク追加
 
     @State private var showQuickActions = false
 
@@ -108,6 +109,11 @@ struct ArticleCardView: View {
 
     private var headerSection: some View {
         HStack {
+            // Unread badge
+            if isUnread {
+                unreadBadge
+            }
+
             // Domain
             HStack(spacing: 4) {
                 Image(systemName: "globe")
@@ -121,15 +127,42 @@ struct ArticleCardView: View {
 
             Spacer()
 
-            // Favorite button
-            Button(action: onFavoriteTap) {
-                Image(systemName: bookmark.isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 20))
-                    .foregroundColor(bookmark.isFavorite ? .red : .secondary)
-                    .frame(width: 44, height: 44)
+            // Add Bookmark button (for New Entry only)
+            if !bookmark.isUserBookmarked, let onAddBookmark = onAddBookmark {
+                Button(action: onAddBookmark) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+
+            // Favorite button (for Bookmarked articles only)
+            if bookmark.isUserBookmarked {
+                Button(action: onFavoriteTap) {
+                    Image(systemName: bookmark.isFavorite ? "heart.fill" : "heart")
+                        .font(.system(size: 20))
+                        .foregroundColor(bookmark.isFavorite ? .red : .secondary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+            }
         }
+    }
+
+    private var isUnread: Bool {
+        bookmark.readingStatus == ReadingStatus.unread.rawValue
+    }
+
+    private var unreadBadge: some View {
+        Text("未読")
+            .font(.caption2)
+            .fontWeight(.medium)
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.blue)
+            .cornerRadius(4)
     }
 
     // MARK: - Title Section

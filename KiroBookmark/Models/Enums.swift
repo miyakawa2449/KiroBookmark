@@ -103,6 +103,7 @@ enum MainTabType: String, CaseIterable, Codable {
 // MARK: - SideMenuItem
 
 enum SideMenuItem: String, CaseIterable, Codable {
+    case unread = "unread"
     case favorite = "favorite"
     case idea = "idea"
     case thought = "thought"
@@ -111,6 +112,7 @@ enum SideMenuItem: String, CaseIterable, Codable {
 
     var displayName: String {
         switch self {
+        case .unread: return "未読"
         case .favorite: return "いいね"
         case .idea: return "アイディア"
         case .thought: return "感想"
@@ -121,6 +123,7 @@ enum SideMenuItem: String, CaseIterable, Codable {
 
     var systemIcon: String {
         switch self {
+        case .unread: return "circle"
         case .favorite: return "heart.fill"
         case .idea: return "lightbulb"
         case .thought: return "text.bubble"
@@ -131,6 +134,7 @@ enum SideMenuItem: String, CaseIterable, Codable {
 
     var color: Color {
         switch self {
+        case .unread: return .blue
         case .favorite: return .red
         case .idea: return .blue
         case .thought: return .green
@@ -141,6 +145,7 @@ enum SideMenuItem: String, CaseIterable, Codable {
 
     var associatedMemoType: MemoType? {
         switch self {
+        case .unread: return nil
         case .favorite: return nil
         case .idea: return .idea
         case .thought: return .thought

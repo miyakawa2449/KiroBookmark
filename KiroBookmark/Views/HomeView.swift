@@ -142,10 +142,17 @@ struct HomeView: View {
             }
         }
         .onAppear {
+            // Load cached articles first, then refresh in background
+            newEntryViewModel.loadArticles()
             Task {
                 await newEntryViewModel.refreshFeeds()
             }
         }
+        .toast(
+            isPresented: $newEntryViewModel.showToast,
+            message: newEntryViewModel.toastMessage,
+            type: newEntryViewModel.toastType
+        )
     }
 
     private var newEntryList: some View {
@@ -170,13 +177,19 @@ struct HomeView: View {
                     .padding(.horizontal)
                 }
 
-                ForEach(newEntryViewModel.articles) { article in
-                    RSSArticleCardView(
-                        article: article,
-                        onBookmark: {
-                            Task {
-                                _ = await newEntryViewModel.bookmarkArticle(article)
-                            }
+                ForEach(newEntryViewModel.articles, id: \.id) { article in
+                    ArticleCardView(
+                        bookmark: article,
+                        onFavoriteTap: {},
+                        onCardTap: {
+                            // Mark as viewed and navigate to WebView
+                            newEntryViewModel.markAsViewed(article)
+                            navigationPath.append(article)
+                        },
+                        onAddBookmark: {
+                            newEntryViewModel.addToBookmark(article)
+                            // Refresh Bookmark list immediately
+                            viewModel.loadData()
                         }
                     )
                 }

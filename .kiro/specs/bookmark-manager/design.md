@@ -150,6 +150,13 @@ protocol BlogManagerProtocol {
     func updateBookmark(_ bookmark: ArticleBookmark) async throws
     func getBookmarks(filter: BookmarkFilter?) async -> [ArticleBookmark]
     
+    // New Entry / Bookmark 管理
+    func addToBookmark(articleId: UUID) async throws  // New Entry → Bookmark
+    func getNewEntryArticles() async -> [ArticleBookmark]  // isUserBookmarked == false
+    func getUserBookmarks() async -> [ArticleBookmark]     // isUserBookmarked == true
+    func markAsViewed(articleId: UUID) async throws        // 閲覧記録
+    func cleanupOldNewEntries() async throws               // 20日以上経過した記事削除
+    
     // メモ管理
     func addMemo(to bookmarkId: UUID, memo: TweetMemo) async throws
     func updateMemo(_ memo: TweetMemo) async throws
@@ -453,12 +460,19 @@ class ArticleBookmark {
     var domain: String
     var thumbnailURL: URL?
     
+    // New Entry / Bookmark 管理用フィールド
+    var isUserBookmarked: Bool  // ユーザーが明示的にブックマークしたか
+    var isFromRSS: Bool          // RSSから自動追加されたか
+    var viewedDate: Date?        // 最後に閲覧した日時
+    var viewCount: Int           // 閲覧回数
+    var rssAddedDate: Date?      // RSS追加日時（自動削除判定用）
+    
     // リレーション
     @Relationship(deleteRule: .cascade) var memos: [TweetMemo]
     @Relationship var tags: [Tag]
     @Relationship var feed: RSSFeed?
     
-    init(url: URL, title: String) {
+    init(url: URL, title: String, isFromRSS: Bool = false) {
         self.id = UUID()
         self.url = url
         self.title = title
@@ -468,6 +482,10 @@ class ArticleBookmark {
         self.domain = url.host ?? ""
         self.memos = []
         self.tags = []
+        self.isUserBookmarked = !isFromRSS
+        self.isFromRSS = isFromRSS
+        self.viewCount = 0
+        self.rssAddedDate = isFromRSS ? Date() : nil
     }
 }
 
@@ -1109,6 +1127,22 @@ struct SwipeNavigationResult {
 ### Property 28: メニュー設定の永続性
 *For any* menu configuration change, when the user changes menu item order or visibility, the new configuration should persist across app restarts
 **Validates: Requirements 22.4**
+
+### Property 29: New Entry記事の自動削除
+*For any* New Entry記事（isUserBookmarked == false）, when 20 days have passed since rssAddedDate, the system should automatically delete the article
+**Validates: Requirements 1.8**
+
+### Property 30: ブックマーク追加の状態更新
+*For any* New Entry記事, when a user adds it to bookmarks, the system should update isUserBookmarked to true and the article should appear in the Bookmark tab
+**Validates: Requirements 1.7**
+
+### Property 31: 閲覧時の状態更新
+*For any* article, when a user views it, the system should update viewedDate, increment viewCount, and set readingStatus to read
+**Validates: Requirements 6.2, 6.3, 6.8**
+
+### Property 32: タブ表示フィルタリング
+*For any* article, it should appear in New Entry tab if and only if isUserBookmarked is false, and in Bookmark tab if and only if isUserBookmarked is true
+**Validates: Requirements 10.11, 10.12**
 
 ## Error Handling
 

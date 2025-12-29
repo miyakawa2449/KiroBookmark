@@ -57,7 +57,8 @@ final class HomeViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            bookmarks = try bookmarkRepository.fetchAllSortedByActivity()
+            // Fetch only user bookmarks (isUserBookmarked == true)
+            bookmarks = try bookmarkRepository.fetchUserBookmarks()
             updateMenuItemCounts()
             updateVisibleMenuItems()
             applyCurrentFilter()
@@ -120,7 +121,12 @@ final class HomeViewModel: ObservableObject {
         var counts: [SideMenuItem: Int] = [:]
 
         for item in SideMenuItem.allCases {
-            if item == .favorite {
+            if item == .unread {
+                // Count unread bookmarks
+                counts[item] = bookmarks.filter {
+                    $0.readingStatus == ReadingStatus.unread.rawValue
+                }.count
+            } else if item == .favorite {
                 // Count favorite bookmarks
                 counts[item] = bookmarks.filter { $0.isFavorite }.count
             } else if let memoType = item.associatedMemoType {
@@ -176,7 +182,12 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func applyMenuFilter(_ item: SideMenuItem) {
-        if item == .favorite {
+        if item == .unread {
+            // Filter by unread bookmarks
+            filteredBookmarks = bookmarks.filter {
+                $0.readingStatus == ReadingStatus.unread.rawValue
+            }
+        } else if item == .favorite {
             // Filter by favorite bookmarks
             filteredBookmarks = bookmarks.filter { $0.isFavorite }
         } else if let memoType = item.associatedMemoType {

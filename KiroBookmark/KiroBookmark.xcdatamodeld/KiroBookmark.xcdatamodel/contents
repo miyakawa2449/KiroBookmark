@@ -5,11 +5,16 @@
         <attribute name="domain" attributeType="String" defaultValueString=""/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isFavorite" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFromRSS" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isUserBookmarked" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="publishedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="readingStatus" attributeType="String" defaultValueString="unread"/>
+        <attribute name="rssAddedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="summary" optional="YES" attributeType="String"/>
         <attribute name="title" attributeType="String" defaultValueString=""/>
         <attribute name="url" attributeType="String" defaultValueString=""/>
+        <attribute name="viewCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="viewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="favoriteBlog" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FavoriteBlog" inverseName="articles" inverseEntity="FavoriteBlog"/>
         <relationship name="memos" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TweetMemo" inverseName="bookmark" inverseEntity="TweetMemo"/>
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Tag" inverseName="bookmarks" inverseEntity="Tag"/>

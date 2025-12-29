@@ -12,17 +12,23 @@ import CoreData
 
 protocol BookmarkRepositoryProtocol {
     func create(url: String, title: String, domain: String) throws -> ArticleBookmark
+    func createFromRSS(url: String, title: String, domain: String, summary: String?, publishedDate: Date?) throws -> ArticleBookmark
     func fetchAll() throws -> [ArticleBookmark]
     func fetchAllSortedByActivity() throws -> [ArticleBookmark]
     func fetchById(_ id: UUID) throws -> ArticleBookmark?
     func fetchByURL(_ url: String) throws -> ArticleBookmark?
     func fetchFavorites() throws -> [ArticleBookmark]
     func fetchByReadingStatus(_ status: ReadingStatus) throws -> [ArticleBookmark]
+    func fetchNewEntryArticles() throws -> [ArticleBookmark]
+    func fetchUserBookmarks() throws -> [ArticleBookmark]
     func update(_ bookmark: ArticleBookmark) throws
     func delete(_ bookmark: ArticleBookmark) throws
     func deleteById(_ id: UUID) throws
     func toggleFavorite(_ bookmark: ArticleBookmark) throws
     func updateReadingStatus(_ bookmark: ArticleBookmark, status: ReadingStatus) throws
+    func addToBookmark(_ bookmark: ArticleBookmark) throws
+    func markAsViewed(_ bookmark: ArticleBookmark) throws
+    func cleanupOldNewEntries() throws -> Int
     func exists(url: String) -> Bool
 }
 
@@ -47,6 +53,29 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
         bookmark.bookmarkedDate = Date()
         bookmark.isFavorite = false
         bookmark.readingStatus = ReadingStatus.unread.rawValue
+        bookmark.isUserBookmarked = true
+        bookmark.isFromRSS = false
+        bookmark.viewCount = 0
+
+        try context.save()
+        return bookmark
+    }
+
+    func createFromRSS(url: String, title: String, domain: String, summary: String?, publishedDate: Date?) throws -> ArticleBookmark {
+        let bookmark = ArticleBookmark(context: context)
+        bookmark.id = UUID()
+        bookmark.url = url
+        bookmark.title = title
+        bookmark.domain = domain
+        bookmark.summary = summary
+        bookmark.publishedDate = publishedDate
+        bookmark.bookmarkedDate = Date()
+        bookmark.isFavorite = false
+        bookmark.readingStatus = ReadingStatus.unread.rawValue
+        bookmark.isUserBookmarked = false
+        bookmark.isFromRSS = true
+        bookmark.rssAddedDate = Date()
+        bookmark.viewCount = 0
 
         try context.save()
         return bookmark
@@ -116,6 +145,20 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
         return try context.fetch(request)
     }
 
+    func fetchNewEntryArticles() throws -> [ArticleBookmark] {
+        let request = ArticleBookmark.fetchRequest()
+        request.predicate = NSPredicate(format: "isUserBookmarked == NO")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ArticleBookmark.publishedDate, ascending: false)]
+        return try context.fetch(request)
+    }
+
+    func fetchUserBookmarks() throws -> [ArticleBookmark] {
+        let request = ArticleBookmark.fetchRequest()
+        request.predicate = NSPredicate(format: "isUserBookmarked == YES")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ArticleBookmark.bookmarkedDate, ascending: false)]
+        return try context.fetch(request)
+    }
+
     // MARK: - Update
 
     func update(_ bookmark: ArticleBookmark) throws {
@@ -130,6 +173,44 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
     func updateReadingStatus(_ bookmark: ArticleBookmark, status: ReadingStatus) throws {
         bookmark.readingStatus = status.rawValue
         try context.save()
+    }
+
+    func addToBookmark(_ bookmark: ArticleBookmark) throws {
+        bookmark.isUserBookmarked = true
+        bookmark.bookmarkedDate = Date()
+        try context.save()
+    }
+
+    func markAsViewed(_ bookmark: ArticleBookmark) throws {
+        bookmark.viewedDate = Date()
+        bookmark.viewCount += 1
+        bookmark.readingStatus = ReadingStatus.read.rawValue
+        try context.save()
+    }
+
+    func cleanupOldNewEntries() throws -> Int {
+        guard let twentyDaysAgo = Calendar.current.date(byAdding: .day, value: -20, to: Date()) else {
+            return 0
+        }
+
+        let request = ArticleBookmark.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "isUserBookmarked == NO AND rssAddedDate != nil AND rssAddedDate < %@",
+            twentyDaysAgo as CVarArg
+        )
+
+        let oldArticles = try context.fetch(request)
+        let count = oldArticles.count
+
+        for article in oldArticles {
+            context.delete(article)
+        }
+
+        if count > 0 {
+            try context.save()
+        }
+
+        return count
     }
 
     // MARK: - Delete

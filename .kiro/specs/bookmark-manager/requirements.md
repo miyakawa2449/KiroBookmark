@@ -43,6 +43,9 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 3. WHEN ユーザーがブックマークリストを表示する THEN THE Blog_Manager SHALL 保存されたすべてのブックマークをタイトル、URL、サムネイル、記事公開日、経過時間と共にカード形式で表示する
 4. WHEN ユーザーが2タブシステムを使用する THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブで記事を表示する
 5. WHEN ユーザーがブックマークを編集する THEN THE Blog_Manager SHALL タイトルとタグの変更を保存する
+6. WHEN New Entry記事がRSSから追加される THEN THE Blog_Manager SHALL 記事を未ブックマーク状態（isUserBookmarked = false）で保存する
+7. WHEN ユーザーがNew Entry記事をブックマークに追加する THEN THE Blog_Manager SHALL isUserBookmarkedフラグをtrueに更新してBookmarkタブに表示する
+8. WHEN New Entry記事が20日間経過する THEN THE Blog_Manager SHALL 未ブックマーク記事を自動的に削除する
 
 ### Requirement 2: Twitter風メモ機能
 
@@ -101,11 +104,13 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 #### Acceptance Criteria
 
 1. WHEN 記事がブックマークされる THEN THE Blog_Manager SHALL 初期状態を「未読」に設定する
-2. WHEN ユーザーが記事を開く THEN THE Blog_Manager SHALL 閲覧日時を記録する
-3. WHEN ユーザーが記事を「既読」に設定する THEN THE Blog_Manager SHALL 既読フラグと日時を記録する
-4. WHEN ユーザーが記事を「お気に入り」に設定する THEN THE Blog_Manager SHALL お気に入りフラグを設定する
-5. WHEN ユーザーが閲覧状況でフィルタリングする THEN THE Blog_Manager SHALL 指定された状態の記事のみを表示する
-6. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の閲覧状況を視覚的に区別して表示する
+2. WHEN ユーザーがNew Entry記事をタップして閲覧する THEN THE Blog_Manager SHALL 閲覧日時を記録し、既読フラグを設定し、閲覧回数をインクリメントする
+3. WHEN ユーザーがBookmark記事を開く THEN THE Blog_Manager SHALL 閲覧日時を記録し、閲覧回数をインクリメントする
+4. WHEN ユーザーが記事を「既読」に設定する THEN THE Blog_Manager SHALL 既読フラグと日時を記録する
+5. WHEN ユーザーが記事を「お気に入り」に設定する THEN THE Blog_Manager SHALL お気に入りフラグを設定する
+6. WHEN ユーザーが閲覧状況でフィルタリングする THEN THE Blog_Manager SHALL 指定された状態の記事のみを表示する
+7. WHEN 記事一覧を表示する THEN THE Blog_Manager SHALL 各記事の閲覧状況を視覚的に区別して表示する
+8. WHEN New Entry記事が閲覧される THEN THE Blog_Manager SHALL 自動的に既読状態に更新する
 
 ### Requirement 7: 時間経過表示
 
@@ -151,12 +156,17 @@ AIエンジニア向けの技術ブログ管理ツール。技術系ブログの
 #### Acceptance Criteria
 
 1. WHEN ユーザーがアプリを起動する THEN THE Blog_Manager SHALL 2タブシステムのホーム画面を読み込み時間内（3秒以内）に表示する
-2. WHEN ユーザーが記事をタップする THEN THE Blog_Manager SHALL 記事をアプリ内WebViewで開く
-3. WHEN ユーザーがスワイプジェスチャーを使用する THEN THE Blog_Manager SHALL 削除、編集、読書状況変更のオプションを表示する
-4. WHEN アプリがダークモードで表示される THEN THE Blog_Manager SHALL 適切なダークテーマを適用する
-5. WHEN ユーザーが記事詳細画面を表示する THEN THE Blog_Manager SHALL 記事情報、メモ種類別一覧、タグ、読書状況を表示する
-6. WHEN ユーザーが2タブシステムを使用する THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブを提供する
-7. WHEN ユーザーがヘッダーを表示する THEN THE Blog_Manager SHALL 中央にアプリアイコンを表示する
+2. WHEN ユーザーがNew Entry記事をタップする THEN THE Blog_Manager SHALL 記事をアプリ内WebViewで開き、閲覧日時と閲覧回数を記録し、既読状態に更新する
+3. WHEN ユーザーがBookmark記事をタップする THEN THE Blog_Manager SHALL 記事をアプリ内WebViewで開き、閲覧日時と閲覧回数を記録する
+4. WHEN ユーザーがNew Entry一覧でブックマーク追加ボタンをタップする THEN THE Blog_Manager SHALL 記事をブックマークに追加してBookmarkタブに表示する
+5. WHEN ユーザーがWebViewでブックマーク追加ボタンをタップする THEN THE Blog_Manager SHALL 記事をブックマークに追加してBookmarkタブに表示する
+6. WHEN ユーザーがスワイプジェスチャーを使用する THEN THE Blog_Manager SHALL 削除、編集、読書状況変更のオプションを表示する
+7. WHEN アプリがダークモードで表示される THEN THE Blog_Manager SHALL 適切なダークテーマを適用する
+8. WHEN ユーザーが記事詳細画面を表示する THEN THE Blog_Manager SHALL 記事情報、メモ種類別一覧、タグ、読書状況を表示する
+9. WHEN ユーザーが2タブシステムを使用する THEN THE Blog_Manager SHALL New EntryタブとBookmarkタブを提供する
+10. WHEN ユーザーがヘッダーを表示する THEN THE Blog_Manager SHALL 中央にアプリアイコンを表示する
+11. WHEN New Entryタブを表示する THEN THE Blog_Manager SHALL 未ブックマーク記事（isUserBookmarked == false）のみを表示する
+12. WHEN Bookmarkタブを表示する THEN THE Blog_Manager SHALL ブックマーク済み記事（isUserBookmarked == true）のみを表示する
 
 ### Requirement 11: データ永続化・同期
 

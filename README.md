@@ -10,7 +10,7 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 
 ### Phase 1A（MVP）- 完了
 - **2タブナビゲーション**: New Entry / Bookmark
-- **サイドメニュー**: 右スワイプでメモ種類別フィルタ（いいね、アイディア、感想、TODO、その他）
+- **サイドメニュー**: 右スワイプでメモ種類別フィルタ（いいね、アイディア、感想、TODO、その他、未読）
 - **ブックマーク管理**: URL追加・カード表示・削除・お気に入り
 - **メモ機能**: 記事ごとに種類別メモ（140文字制限）
 - **タグ管理**: 記事への複数タグ付け・使用頻度順表示
@@ -18,11 +18,21 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 - **動的メニュー**: メモ種類別フィルタリング
 - **設定画面**: メニューカスタマイズ
 
+### Phase 1B（実装済み）
+- **記事プレビューUI改善**: カードタップでWebView直接表示、ツールバー追加
+- **RSS自動検出・監視**: ブックマーク追加時にRSS自動検出、定期更新
+- **統合検索機能**: タイトル・URL・ドメイン・メモ・タグの横断検索
+- **時間経過表示**: 「3分前」「2時間前」等の相対時間表示
+- **記事閲覧状態管理**: 未読バッジ、自動既読マーク
+- **New Entry/Bookmark分離**: RSS記事とユーザーブックマークの明確な分離
+- **トースト通知**: ブックマーク追加時の視覚的フィードバック
+
 ### Phase 1B（予定）
-- RSS自動更新・通知
-- 全文検索
+- 通知機能（ブログ更新通知、Push通知）
+- ドメイン整理機能
 - エクスポート（Markdown/JSON）
 - AI要約・タグ推薦
+- 写真添付機能
 
 ## 技術スタック
 
@@ -41,37 +51,44 @@ KiroBookmark/
 ├── Core/
 │   └── PersistenceController.swift
 ├── Helpers/
-│   └── ColorExtensions.swift
+│   ├── ColorExtensions.swift
+│   └── DateExtensions.swift          # 相対時間表示
 ├── Models/
 │   └── Enums.swift                    # MemoType, ReadingStatus, MainTabType, SideMenuItem
 ├── Repositories/
-│   ├── BookmarkRepository.swift
+│   ├── BookmarkRepository.swift       # New Entry/Bookmark分離対応
 │   ├── FavoriteBlogRepository.swift
 │   ├── MemoRepository.swift
 │   └── TagRepository.swift
 ├── Services/
+│   ├── RSSService.swift               # RSS取得・パース
+│   ├── RSSDiscoveryService.swift      # RSS自動検出
 │   └── URLValidationService.swift
 ├── ViewModels/
 │   ├── AddBookmarkViewModel.swift
 │   ├── AddMemoViewModel.swift
-│   ├── ArticleWebViewModel.swift
+│   ├── ArticleWebViewModel.swift      # トースト通知対応
 │   ├── BookmarkListViewModel.swift
 │   ├── HomeViewModel.swift
 │   ├── MemoListViewModel.swift
+│   ├── NewEntryViewModel.swift        # New Entry専用
+│   ├── RSSFeedViewModel.swift
+│   ├── SearchViewModel.swift          # 統合検索
 │   ├── TagListViewModel.swift
 │   └── TagSelectionViewModel.swift
 ├── Views/
+│   ├── Components/
+│   │   └── ToastView.swift            # トースト通知コンポーネント
 │   ├── AddBookmarkView.swift
-│   ├── AddMemoView.swift
-│   ├── ArticleCardView.swift
+│   ├── AddMemoSheet.swift
+│   ├── ArticleCardView.swift          # ロングプレスメニュー対応
 │   ├── ArticleDetailView.swift
-│   ├── ArticleWebView.swift
-│   ├── BookmarkCardView.swift
-│   ├── BookmarkListView.swift
-│   ├── HomeView.swift
+│   ├── ArticleWebView.swift           # ツールバー・トースト対応
+│   ├── HomeView.swift                 # 2タブ+サイドメニュー
 │   ├── MemoCardView.swift
 │   ├── MemoListView.swift
 │   ├── QuoteMemoSheet.swift
+│   ├── SearchView.swift               # 統合検索UI
 │   ├── SettingsView.swift
 │   ├── SideMenuView.swift
 │   ├── TagListView.swift
@@ -79,8 +96,8 @@ KiroBookmark/
 └── KiroBookmark.xcdatamodeld/
 
 KiroBookmarkTests/
-├── PropertyTests.swift                # プロパティベーステスト (20テスト)
-└── KiroBookmarkTests.swift            # ユニットテスト (48テスト)
+├── PropertyTests.swift                # プロパティベーステスト
+└── KiroBookmarkTests.swift            # ユニットテスト
 ```
 
 ## データモデル
@@ -95,7 +112,11 @@ KiroBookmarkTests/
 | bookmarkedDate | Date | ブックマーク日時 |
 | publishedDate | Date? | 公開日時 |
 | isFavorite | Bool | お気に入り |
-| readingStatus | String | 閲覧状態（未読/既読/お気に入り） |
+| readingStatus | String | 閲覧状態（未読/既読） |
+| isUserBookmarked | Bool | ユーザーブックマークフラグ |
+| isFromRSS | Bool | RSS由来フラグ |
+| viewedDate | Date? | 閲覧日時 |
+| viewCount | Int32 | 閲覧回数 |
 | summary | String? | 要約 |
 
 ### TweetMemo
@@ -126,6 +147,7 @@ KiroBookmarkTests/
 | name | String | ブログ名 |
 | rssURL | String? | RSS URL |
 | addedDate | Date | 登録日時 |
+| lastFetchedDate | Date? | 最終取得日時 |
 
 ### リレーション
 - ArticleBookmark ↔ TweetMemo (1:N)
@@ -134,6 +156,7 @@ KiroBookmarkTests/
 
 ## 開発状況
 
+### Phase 1A
 | Task | Status | 内容 |
 |------|--------|------|
 | Task 1 | ✅ 完了 | Core Data初期設定 |
@@ -144,7 +167,18 @@ KiroBookmarkTests/
 | Task 6 | ✅ 完了 | 2タブ+サイドメニュー |
 | Task 7 | ✅ 完了 | MVP完成・検証 |
 
-**進捗: 7/7 (100%) - Phase 1A MVP 完了**
+### Phase 1B
+| 機能 | Status |
+|------|--------|
+| 記事プレビューUI改善 | ✅ 完了 |
+| RSS自動検出・監視 | ✅ 完了 |
+| 統合検索機能 | ✅ 完了 |
+| 時間経過表示 | ✅ 完了 |
+| 記事閲覧状態管理 | ✅ 完了 |
+| New Entry/Bookmark分離 | ✅ 完了 |
+| トースト通知 | ✅ 完了 |
+| 通知機能 | 🔜 予定 |
+| エクスポート・AI機能 | 🔜 予定 |
 
 ## セットアップ
 
@@ -160,8 +194,6 @@ open KiroBookmark.xcodeproj
 - Swift 5.9+
 
 ## テスト
-
-全68テストで品質保証。
 
 ```bash
 # Xcodeでテスト実行
@@ -179,21 +211,18 @@ xcodebuild test -scheme KiroBookmark -destination 'platform=iOS Simulator,name=i
 ### ユニットテスト（XCTest）
 - Repository層: CRUD操作
 - ViewModel層: 状態管理
-- Service層: URL検証
+- Service層: URL検証・RSS処理
 
 ## 既知の制限事項
 
-### Phase 1A での制限
-- RSS自動更新なし（Phase 1Bで実装予定）
-- 検索機能なし（Phase 1Bで実装予定）
-- エクスポート機能なし（Phase 1Bで実装予定）
-- 写真添付なし（テキストメモのみ）
+### 現在の制限
 - データはローカル保存のみ（iCloud同期なし）
+- 写真添付なし（テキストメモのみ）
+- Push通知未実装
 
 ### 既知の警告
 - Swift 6 Concurrency警告（動作には影響なし）
   - MainActor isolated initializer warnings
-  - Phase 1Bでの対応予定
 
 ## ドキュメント
 
@@ -205,8 +234,33 @@ xcodebuild test -scheme KiroBookmark -destination 'platform=iOS Simulator,name=i
 | ユースケース | `.kiro/specs/bookmark-manager/usecase.md` |
 | 画面設計 | `.kiro/specs/bookmark-manager/screen-design.md` |
 | Claude Code設定 | `CLAUDE.md` |
-| セッションレポート | `reports/YYYY-MM-DD/*.md` |
+| 実装指示書 | `.claude/instructions/*.md` |
+
+## 作者
+
+**宮川 剛**
+- GitHub: [@miyakawa2449](https://github.com/miyakawa2449)
 
 ## ライセンス
 
-未定
+MIT License
+
+Copyright (c) 2024 宮川 剛
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

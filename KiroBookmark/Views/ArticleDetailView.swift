@@ -350,10 +350,7 @@ struct ArticleDetailView: View {
     // MARK: - Helpers
 
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        return date.relativeTimeString()
     }
 }
 

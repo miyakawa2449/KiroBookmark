@@ -225,26 +225,7 @@ struct ArticleCardView: View {
 
     private func formatDate(_ date: Date?) -> String {
         guard let date = date else { return "" }
-
-        let calendar = Calendar.current
-        let now = Date()
-
-        if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            return "今日 \(formatter.string(from: date))"
-        } else if calendar.isDateInYesterday(date) {
-            return "昨日"
-        } else {
-            let days = calendar.dateComponents([.day], from: date, to: now).day ?? 0
-            if days < 7 {
-                return "\(days)日前"
-            } else {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "M/d"
-                return formatter.string(from: date)
-            }
-        }
+        return date.relativeTimeString()
     }
 
     private func getMemoCount() -> Int? {

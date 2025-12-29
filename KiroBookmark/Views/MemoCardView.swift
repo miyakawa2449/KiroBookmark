@@ -139,23 +139,7 @@ struct MemoCardView: View {
 
     private func formatDate(_ date: Date?) -> String {
         guard let date = date else { return "" }
-
-        let elapsed = Date().timeIntervalSince(date)
-        let hours = Int(elapsed / 3600)
-        let days = Int(elapsed / 86400)
-
-        if hours < 1 {
-            return "たった今"
-        } else if hours < 24 {
-            return "\(hours)時間前"
-        } else if days < 7 {
-            return "\(days)日前"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
+        return date.relativeTimeString()
     }
 }
 

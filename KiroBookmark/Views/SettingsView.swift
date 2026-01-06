@@ -15,6 +15,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                notificationSection
                 menuCustomizationSection
                 displaySection
                 dataSection
@@ -35,6 +36,23 @@ struct SettingsView: View {
                 }
                 #endif
             }
+        }
+    }
+
+    // MARK: - Notification Section
+
+    private var notificationSection: some View {
+        Section {
+            Toggle("新着通知を受け取る", isOn: $viewModel.notificationEnabled)
+
+            if viewModel.notificationEnabled {
+                Toggle("バッジを表示", isOn: $viewModel.badgeEnabled)
+                Toggle("サウンドを鳴らす", isOn: $viewModel.soundEnabled)
+            }
+        } header: {
+            Text("通知設定")
+        } footer: {
+            Text("お気に入りブログの新着記事を通知します")
         }
     }
 
@@ -263,6 +281,15 @@ final class SettingsViewModel: ObservableObject {
     @Published var visibleMenuItems: Set<SideMenuItem>
     @Published var cardDisplayMode: CardDisplayMode
     @Published var defaultSortOrder: SortOrder
+    @Published var notificationEnabled: Bool {
+        didSet { saveNotificationSettings() }
+    }
+    @Published var badgeEnabled: Bool {
+        didSet { saveNotificationSettings() }
+    }
+    @Published var soundEnabled: Bool {
+        didSet { saveNotificationSettings() }
+    }
 
     private let userDefaults = UserDefaults.standard
 
@@ -271,6 +298,9 @@ final class SettingsViewModel: ObservableObject {
         static let visibleMenuItems = "settings.visibleMenuItems"
         static let cardDisplayMode = "settings.cardDisplayMode"
         static let defaultSortOrder = "settings.defaultSortOrder"
+        static let notificationEnabled = "notification.enabled"
+        static let badgeEnabled = "notification.badgeEnabled"
+        static let soundEnabled = "notification.soundEnabled"
     }
 
     init() {
@@ -296,6 +326,11 @@ final class SettingsViewModel: ObservableObject {
         } else {
             defaultSortOrder = .latestActivity
         }
+
+        // Load notification settings
+        notificationEnabled = userDefaults.bool(forKey: Keys.notificationEnabled)
+        badgeEnabled = userDefaults.bool(forKey: Keys.badgeEnabled)
+        soundEnabled = userDefaults.bool(forKey: Keys.soundEnabled)
     }
 
     var appVersion: String {
@@ -327,6 +362,12 @@ final class SettingsViewModel: ObservableObject {
     private func saveVisibleMenuItems() {
         let items = visibleMenuItems.map { $0.rawValue }
         userDefaults.set(items, forKey: Keys.visibleMenuItems)
+    }
+
+    private func saveNotificationSettings() {
+        userDefaults.set(notificationEnabled, forKey: Keys.notificationEnabled)
+        userDefaults.set(badgeEnabled, forKey: Keys.badgeEnabled)
+        userDefaults.set(soundEnabled, forKey: Keys.soundEnabled)
     }
 }
 

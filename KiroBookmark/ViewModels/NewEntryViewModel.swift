@@ -28,17 +28,23 @@ final class NewEntryViewModel: ObservableObject {
     private let rssService: RSSServiceProtocol
     private let favoriteBlogRepository: FavoriteBlogRepositoryProtocol
     private let bookmarkRepository: BookmarkRepositoryProtocol
+    private let notificationService: NotificationServiceProtocol
+    private let userDefaults: UserDefaults
 
     // MARK: - Initialization
 
     init(
         rssService: RSSServiceProtocol = RSSService(),
         favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository()
+        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
+        notificationService: NotificationServiceProtocol = NotificationService(),
+        userDefaults: UserDefaults = .standard
     ) {
         self.rssService = rssService
         self.favoriteBlogRepository = favoriteBlogRepository
         self.bookmarkRepository = bookmarkRepository
+        self.notificationService = notificationService
+        self.userDefaults = userDefaults
     }
 
     // MARK: - Computed Properties
@@ -85,6 +91,9 @@ final class NewEntryViewModel: ObservableObject {
 
             let fetchedArticles = try await rssService.refreshAllFeeds(blogs: feedData)
 
+            // Track new articles by blog for notifications
+            var newArticlesByBlog: [String: Int] = [:]
+
             // Save new articles to Core Data as New Entry (isUserBookmarked = false)
             for rssArticle in fetchedArticles {
                 // Skip if already exists
@@ -99,7 +108,13 @@ final class NewEntryViewModel: ObservableObject {
                     summary: rssArticle.summary,
                     publishedDate: rssArticle.publishedDate
                 )
+
+                // Count new articles per blog
+                newArticlesByBlog[rssArticle.blogName, default: 0] += 1
             }
+
+            // Send notifications for new articles
+            sendNotificationsForNewArticles(newArticlesByBlog)
 
             // Reload articles from Core Data
             loadArticles()
@@ -151,5 +166,30 @@ final class NewEntryViewModel: ObservableObject {
         formatter.locale = Locale(identifier: "ja_JP")
         formatter.unitsStyle = .short
         return "最終更新: \(formatter.localizedString(for: date, relativeTo: Date()))"
+    }
+
+    // MARK: - Private Methods
+
+    private func sendNotificationsForNewArticles(_ articlesByBlog: [String: Int]) {
+        guard isNotificationEnabled else { return }
+        guard !articlesByBlog.isEmpty else { return }
+
+        // Send notification for each blog with new articles
+        for (blogName, count) in articlesByBlog {
+            notificationService.scheduleNewArticleNotification(
+                count: count,
+                blogName: blogName
+            )
+        }
+
+        // Update badge with total count
+        let totalCount = articlesByBlog.values.reduce(0, +)
+        Task {
+            await notificationService.updateBadgeCount(totalCount)
+        }
+    }
+
+    private var isNotificationEnabled: Bool {
+        userDefaults.bool(forKey: "notification.enabled")
     }
 }

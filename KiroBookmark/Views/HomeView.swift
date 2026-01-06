@@ -114,7 +114,7 @@ struct HomeView: View {
             tabBar
 
             // Content based on current tab
-            if viewModel.currentTab == .newEntry && viewModel.selectedMenuItem == nil {
+            if viewModel.currentTab == .newEntry && viewModel.selectedMenuItem == nil && viewModel.selectedDomain == nil {
                 newEntryContent
             } else if viewModel.isLoading {
                 loadingView

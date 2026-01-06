@@ -23,6 +23,11 @@ final class HomeViewModel: ObservableObject {
     @Published var filteredBookmarks: [ArticleBookmark] = []
     @Published var selectedMenuItem: SideMenuItem?
 
+    // Domain Organization
+    @Published var selectedDomain: String?
+    @Published var domainList: [(domain: String, displayName: String, count: Int)] = []
+    @Published var domainSortType: DomainSortType = .bookmarkDate
+
     // Menu State
     @Published var visibleMenuItems: [SideMenuItem] = []
     @Published var menuItemCounts: [SideMenuItem: Int] = [:]
@@ -35,6 +40,7 @@ final class HomeViewModel: ObservableObject {
 
     private let bookmarkRepository: BookmarkRepositoryProtocol
     private let memoRepository: MemoRepositoryProtocol
+    private let favoriteBlogRepository: FavoriteBlogRepositoryProtocol
 
     // MARK: - Constants
 
@@ -44,10 +50,12 @@ final class HomeViewModel: ObservableObject {
 
     init(
         bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        memoRepository: MemoRepositoryProtocol = MemoRepository()
+        memoRepository: MemoRepositoryProtocol = MemoRepository(),
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository()
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.memoRepository = memoRepository
+        self.favoriteBlogRepository = favoriteBlogRepository
     }
 
     // MARK: - Data Loading
@@ -61,6 +69,7 @@ final class HomeViewModel: ObservableObject {
             bookmarks = try bookmarkRepository.fetchUserBookmarks()
             updateMenuItemCounts()
             updateVisibleMenuItems()
+            loadDomainList()
             applyCurrentFilter()
         } catch {
             errorMessage = "データの読み込みに失敗しました"
@@ -112,7 +121,82 @@ final class HomeViewModel: ObservableObject {
 
     func clearMenuSelection() {
         selectedMenuItem = nil
+        selectedDomain = nil
         applyCurrentFilter()
+    }
+
+    // MARK: - Domain Organization
+
+    func loadDomainList() {
+        do {
+            let domainsWithCounts = try bookmarkRepository.getDomainsWithCounts()
+            domainList = domainsWithCounts.map { item in
+                let displayName = favoriteBlogRepository.getDisplayName(for: item.domain)
+                return (domain: item.domain, displayName: displayName, count: item.count)
+            }
+        } catch {
+            domainList = []
+        }
+    }
+
+    func selectDomain(_ domain: String) {
+        selectedDomain = domain
+        selectedMenuItem = nil
+        closeSideMenu()
+        applyDomainFilter()
+    }
+
+    func clearDomainSelection() {
+        selectedDomain = nil
+        applyCurrentFilter()
+    }
+
+    func updateDomainDisplayName(_ domain: String, name: String) {
+        do {
+            let blog = try favoriteBlogRepository.getOrCreate(domain: domain)
+            try favoriteBlogRepository.updateName(blog, name: name)
+            loadDomainList()
+        } catch {
+            errorMessage = "ドメイン名の更新に失敗しました"
+        }
+    }
+
+    private func applyDomainFilter() {
+        guard let domain = selectedDomain else {
+            applyCurrentFilter()
+            return
+        }
+
+        do {
+            filteredBookmarks = try bookmarkRepository.fetchByDomain(domain)
+            sortDomainBookmarks()
+        } catch {
+            filteredBookmarks = []
+        }
+    }
+
+    private func sortDomainBookmarks() {
+        filteredBookmarks.sort { b1, b2 in
+            switch domainSortType {
+            case .publishDate:
+                let d1 = b1.publishedDate ?? b1.bookmarkedDate ?? Date.distantPast
+                let d2 = b2.publishedDate ?? b2.bookmarkedDate ?? Date.distantPast
+                return d1 > d2
+            case .bookmarkDate:
+                let d1 = b1.bookmarkedDate ?? Date.distantPast
+                let d2 = b2.bookmarkedDate ?? Date.distantPast
+                return d1 > d2
+            case .title:
+                return (b1.title ?? "") < (b2.title ?? "")
+            }
+        }
+    }
+
+    func setDomainSortType(_ sortType: DomainSortType) {
+        domainSortType = sortType
+        if selectedDomain != nil {
+            sortDomainBookmarks()
+        }
     }
 
     // MARK: - Menu Item Visibility
@@ -246,6 +330,9 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Navigation Title
 
     var navigationTitle: String {
+        if let domain = selectedDomain {
+            return domainList.first { $0.domain == domain }?.displayName ?? domain
+        }
         if let menuItem = selectedMenuItem {
             return menuItem.displayName
         }

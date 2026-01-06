@@ -155,6 +155,30 @@ enum SideMenuItem: String, CaseIterable, Codable {
     }
 }
 
+// MARK: - DomainSortType
+
+enum DomainSortType: String, CaseIterable, Codable {
+    case publishDate = "publishDate"
+    case bookmarkDate = "bookmarkDate"
+    case title = "title"
+
+    var displayName: String {
+        switch self {
+        case .publishDate: return "公開日時順"
+        case .bookmarkDate: return "ブックマーク日時順"
+        case .title: return "タイトル順"
+        }
+    }
+
+    var systemIcon: String {
+        switch self {
+        case .publishDate: return "calendar"
+        case .bookmarkDate: return "bookmark"
+        case .title: return "textformat"
+        }
+    }
+}
+
 // MARK: - RSSFeedStatus
 
 enum RSSFeedStatus: String, CaseIterable, Codable {

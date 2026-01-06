@@ -26,6 +26,11 @@ protocol FavoriteBlogRepositoryProtocol {
     func updateRSSURL(_ blog: FavoriteBlog, rssURL: String?) throws
     func fetchWithRSSURL() throws -> [FavoriteBlog]
     func clearRSSURL(_ blog: FavoriteBlog) throws
+
+    // Domain organization methods
+    func getOrCreate(domain: String) throws -> FavoriteBlog
+    func updateName(_ blog: FavoriteBlog, name: String) throws
+    func getDisplayName(for domain: String) -> String
 }
 
 // MARK: - FavoriteBlogRepository
@@ -128,6 +133,27 @@ final class FavoriteBlogRepository: FavoriteBlogRepositoryProtocol {
     func clearRSSURL(_ blog: FavoriteBlog) throws {
         blog.rssURL = nil
         try context.save()
+    }
+
+    // MARK: - Domain Organization
+
+    func getOrCreate(domain: String) throws -> FavoriteBlog {
+        if let existing = try fetchByDomain(domain) {
+            return existing
+        }
+        return try create(domain: domain, name: domain, rssURL: nil)
+    }
+
+    func updateName(_ blog: FavoriteBlog, name: String) throws {
+        blog.name = name.isEmpty ? blog.domain : name
+        try context.save()
+    }
+
+    func getDisplayName(for domain: String) -> String {
+        guard let blog = try? fetchByDomain(domain) else {
+            return domain
+        }
+        return blog.name ?? domain
     }
 }
 

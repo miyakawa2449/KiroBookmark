@@ -10,6 +10,7 @@ import SwiftUI
 struct SideMenuView: View {
     @ObservedObject var viewModel: HomeViewModel
     let onSettingsTap: () -> Void
+    @State private var domainToEdit: String?
 
     // MARK: - Constants
 
@@ -21,7 +22,15 @@ struct SideMenuView: View {
             VStack(alignment: .leading, spacing: 0) {
                 menuHeader
                 Divider()
-                menuItems
+                ScrollView {
+                    VStack(spacing: 0) {
+                        menuItems
+                        if !viewModel.domainList.isEmpty {
+                            Divider().padding(.vertical, 8)
+                            domainSection
+                        }
+                    }
+                }
                 Spacer()
                 Divider()
                 settingsButton
@@ -37,6 +46,15 @@ struct SideMenuView: View {
                 }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $domainToEdit) { domain in
+            DomainEditSheet(
+                domain: domain,
+                currentName: viewModel.domainList.first { $0.domain == domain }?.displayName ?? domain,
+                onSave: { newName in
+                    viewModel.updateDomainDisplayName(domain, name: newName)
+                }
+            )
+        }
     }
 
     // MARK: - Menu Header
@@ -68,13 +86,75 @@ struct SideMenuView: View {
     // MARK: - Menu Items
 
     private var menuItems: some View {
-        ScrollView {
-            VStack(spacing: 4) {
-                ForEach(viewModel.visibleMenuItems, id: \.self) { item in
-                    menuItemRow(item)
-                }
+        VStack(spacing: 4) {
+            ForEach(viewModel.visibleMenuItems, id: \.self) { item in
+                menuItemRow(item)
             }
-            .padding(.vertical, 8)
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Domain Section
+
+    private var domainSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            domainSectionHeader
+            ForEach(viewModel.domainList, id: \.domain) { item in
+                domainItemRow(item)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var domainSectionHeader: some View {
+        Text("ドメイン別")
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 4)
+    }
+
+    private func domainItemRow(_ item: (domain: String, displayName: String, count: Int)) -> some View {
+        let isSelected = viewModel.selectedDomain == item.domain
+
+        return Button {
+            viewModel.selectDomain(item.domain)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "globe")
+                    .font(.system(size: 18))
+                    .foregroundColor(isSelected ? .white : .blue)
+                    .frame(width: 24)
+
+                Text(item.displayName)
+                    .font(.body)
+                    .foregroundColor(isSelected ? .white : .primary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Text("\(item.count)")
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(isSelected ? Color.white.opacity(0.2) : Color.systemGray5)
+                    .cornerRadius(10)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.blue : Color.clear)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .contextMenu {
+            Button {
+                domainToEdit = item.domain
+            } label: {
+                Label("表示名を編集", systemImage: "pencil")
+            }
         }
     }
 
@@ -147,6 +227,12 @@ struct SideMenuView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
     }
+}
+
+// MARK: - String Identifiable Extension
+
+extension String: @retroactive Identifiable {
+    public var id: String { self }
 }
 
 // MARK: - Preview

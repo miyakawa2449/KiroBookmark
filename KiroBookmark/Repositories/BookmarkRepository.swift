@@ -30,6 +30,10 @@ protocol BookmarkRepositoryProtocol {
     func markAsViewed(_ bookmark: ArticleBookmark) throws
     func cleanupOldNewEntries() throws -> Int
     func exists(url: String) -> Bool
+
+    // Domain organization methods
+    func fetchByDomain(_ domain: String) throws -> [ArticleBookmark]
+    func getDomainsWithCounts() throws -> [(domain: String, count: Int)]
 }
 
 // MARK: - BookmarkRepository
@@ -232,6 +236,36 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
         request.predicate = NSPredicate(format: "url == %@", url)
         request.fetchLimit = 1
         return (try? context.count(for: request)) ?? 0 > 0
+    }
+
+    // MARK: - Domain Organization
+
+    func fetchByDomain(_ domain: String) throws -> [ArticleBookmark] {
+        let request = ArticleBookmark.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "domain == %@ AND isUserBookmarked == YES",
+            domain
+        )
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \ArticleBookmark.bookmarkedDate, ascending: false)
+        ]
+        return try context.fetch(request)
+    }
+
+    func getDomainsWithCounts() throws -> [(domain: String, count: Int)] {
+        let bookmarks = try fetchUserBookmarks()
+        var domainCounts: [String: Int] = [:]
+
+        for bookmark in bookmarks {
+            let domain = bookmark.domain ?? ""
+            if !domain.isEmpty {
+                domainCounts[domain, default: 0] += 1
+            }
+        }
+
+        return domainCounts
+            .map { (domain: $0.key, count: $0.value) }
+            .sorted { $0.count > $1.count }
     }
 }
 

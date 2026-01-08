@@ -41,6 +41,7 @@ final class HomeViewModel: ObservableObject {
     private let bookmarkRepository: BookmarkRepositoryProtocol
     private let memoRepository: MemoRepositoryProtocol
     private let favoriteBlogRepository: FavoriteBlogRepositoryProtocol
+    private let rssService: RSSService
 
     // MARK: - Constants
 
@@ -51,11 +52,13 @@ final class HomeViewModel: ObservableObject {
     init(
         bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
         memoRepository: MemoRepositoryProtocol = MemoRepository(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository()
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
+        rssService: RSSService = RSSService()
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.memoRepository = memoRepository
         self.favoriteBlogRepository = favoriteBlogRepository
+        self.rssService = rssService
     }
 
     // MARK: - Data Loading
@@ -324,6 +327,51 @@ final class HomeViewModel: ObservableObject {
             loadData()
         } catch {
             errorMessage = "ブックマークの削除に失敗しました"
+        }
+    }
+
+    // MARK: - Blog Follow Operations
+
+    func isFollowingBlog(domain: String) -> Bool {
+        guard let blog = try? favoriteBlogRepository.fetchByDomain(domain) else {
+            return false
+        }
+        // Consider "following" if FavoriteBlog exists with RSS URL set
+        return blog.rssURL != nil && !(blog.rssURL?.isEmpty ?? true)
+    }
+
+    func followBlog(domain: String, articleURL: String) async {
+        isLoading = true
+
+        do {
+            // Create or get existing FavoriteBlog
+            let blog = try favoriteBlogRepository.getOrCreate(domain: domain)
+
+            // Detect RSS feed from article URL
+            if let url = URL(string: articleURL) {
+                let feedURLs = try await rssService.detectFeed(from: url)
+                if let firstFeed = feedURLs.first {
+                    try favoriteBlogRepository.updateRSSURL(blog, rssURL: firstFeed.absoluteString)
+                }
+            }
+
+            loadData()
+        } catch {
+            errorMessage = "ブログのフォローに失敗しました"
+        }
+
+        isLoading = false
+    }
+
+    func unfollowBlog(domain: String) {
+        do {
+            if let blog = try favoriteBlogRepository.fetchByDomain(domain) {
+                // Clear RSS URL (don't delete FavoriteBlog as it may have display name)
+                try favoriteBlogRepository.clearRSSURL(blog)
+            }
+            loadData()
+        } catch {
+            errorMessage = "フォロー解除に失敗しました"
         }
     }
 

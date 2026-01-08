@@ -72,12 +72,142 @@ final class RSSService: RSSServiceProtocol {
             }
         }
 
-        // Try common feed paths if no link tags found
+        // Try site-specific feed URLs if no link tags found
+        if feedURLs.isEmpty {
+            feedURLs = trySiteSpecificFeedURLs(baseURL: baseURL)
+        }
+
+        // Try common feed paths as last resort
         if feedURLs.isEmpty {
             feedURLs = tryCommonFeedPaths(baseURL: baseURL)
         }
 
         return feedURLs
+    }
+
+    // MARK: - Site-Specific Feed Detection
+
+    private func trySiteSpecificFeedURLs(baseURL: URL) -> [URL] {
+        guard let host = baseURL.host?.lowercased() else { return [] }
+
+        // Qiita: https://qiita.com/{username}/feed
+        if host == "qiita.com" {
+            return tryQiitaFeedURL(baseURL: baseURL)
+        }
+
+        // Zenn: https://zenn.dev/{username}/feed
+        if host == "zenn.dev" {
+            return tryZennFeedURL(baseURL: baseURL)
+        }
+
+        // note: https://note.com/{username}/rss
+        if host == "note.com" {
+            return tryNoteFeedURL(baseURL: baseURL)
+        }
+
+        // Medium: https://medium.com/feed/@username
+        if host == "medium.com" {
+            return tryMediumFeedURL(baseURL: baseURL)
+        }
+
+        // Dev.to: https://dev.to/feed/username
+        if host == "dev.to" {
+            return tryDevToFeedURL(baseURL: baseURL)
+        }
+
+        return []
+    }
+
+    private func tryQiitaFeedURL(baseURL: URL) -> [URL] {
+        // Extract username from path
+        // Pattern: /username or /username/items/xxx
+        let pathComponents = baseURL.pathComponents.filter { $0 != "/" }
+        guard let username = pathComponents.first, !username.isEmpty else { return [] }
+
+        // Skip if username looks like a system path
+        let systemPaths = ["search", "tags", "organizations", "advent-calendar", "timeline"]
+        if systemPaths.contains(username) { return [] }
+
+        let feedURLString = "https://qiita.com/\(username)/feed"
+        if let feedURL = URL(string: feedURLString) {
+            return [feedURL]
+        }
+        return []
+    }
+
+    private func tryZennFeedURL(baseURL: URL) -> [URL] {
+        // Extract username from path
+        // Pattern: /username or /username/articles/xxx
+        let pathComponents = baseURL.pathComponents.filter { $0 != "/" }
+        guard let username = pathComponents.first, !username.isEmpty else { return [] }
+
+        // Skip if username looks like a system path
+        let systemPaths = ["search", "topics", "scraps", "books"]
+        if systemPaths.contains(username) { return [] }
+
+        let feedURLString = "https://zenn.dev/\(username)/feed"
+        if let feedURL = URL(string: feedURLString) {
+            return [feedURL]
+        }
+        return []
+    }
+
+    private func tryNoteFeedURL(baseURL: URL) -> [URL] {
+        // Extract username from path
+        // Pattern: /username or /username/n/xxx
+        let pathComponents = baseURL.pathComponents.filter { $0 != "/" }
+        guard let username = pathComponents.first, !username.isEmpty else { return [] }
+
+        // Skip if username looks like a system path
+        let systemPaths = ["search", "hashtag", "explore", "magazines"]
+        if systemPaths.contains(username) { return [] }
+
+        let feedURLString = "https://note.com/\(username)/rss"
+        if let feedURL = URL(string: feedURLString) {
+            return [feedURL]
+        }
+        return []
+    }
+
+    private func tryMediumFeedURL(baseURL: URL) -> [URL] {
+        // Extract username from path
+        // Pattern: /@username or /@username/article-title-xxx
+        let pathComponents = baseURL.pathComponents.filter { $0 != "/" }
+        guard let firstComponent = pathComponents.first, !firstComponent.isEmpty else { return [] }
+
+        // Medium usernames start with @
+        let username = firstComponent
+        if !username.hasPrefix("@") {
+            // Could be a publication, skip for now
+            return []
+        }
+
+        // Skip if it looks like a system path
+        let systemPaths = ["@me", "@following", "@list"]
+        if systemPaths.contains(username.lowercased()) { return [] }
+
+        let feedURLString = "https://medium.com/feed/\(username)"
+        if let feedURL = URL(string: feedURLString) {
+            return [feedURL]
+        }
+        return []
+    }
+
+    private func tryDevToFeedURL(baseURL: URL) -> [URL] {
+        // Extract username from path
+        // Pattern: /username or /username/article-slug-xxx
+        let pathComponents = baseURL.pathComponents.filter { $0 != "/" }
+        guard let username = pathComponents.first, !username.isEmpty else { return [] }
+
+        // Skip if username looks like a system path
+        let systemPaths = ["search", "tags", "t", "top", "latest", "videos", "podcasts", "listings", "reading-list", "settings", "admin"]
+        if systemPaths.contains(username) { return [] }
+
+        let feedURLString = "https://dev.to/feed/\(username)"
+        if let feedURL = URL(string: feedURLString) {
+            return [feedURL]
+        }
+        return []
     }
 
     private func resolveURL(_ urlString: String, baseURL: URL) -> URL? {

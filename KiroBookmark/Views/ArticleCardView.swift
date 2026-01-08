@@ -17,6 +17,9 @@ struct ArticleCardView: View {
     var onShowDetail: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     var onAddBookmark: (() -> Void)? = nil  // New Entry用ブックマーク追加
+    var onFollowBlog: (() -> Void)? = nil   // ブログフォロー
+    var onUnfollowBlog: (() -> Void)? = nil // ブログフォロー解除
+    var isFollowingBlog: Bool = false        // ブログフォロー状態
 
     @State private var showQuickActions = false
 
@@ -76,14 +79,33 @@ struct ArticleCardView: View {
             }
         }
 
-        // お気に入り
+        // この記事を保存（お気に入り）
         Button {
             onFavoriteTap()
         } label: {
             Label(
-                bookmark.isFavorite ? "お気に入りを解除" : "お気に入りに追加",
-                systemImage: bookmark.isFavorite ? "heart.slash" : "heart"
+                bookmark.isFavorite ? "この記事の保存を解除" : "この記事を保存",
+                systemImage: bookmark.isFavorite ? "star.slash" : "star"
             )
+        }
+
+        // このブログをフォロー
+        if isFollowingBlog {
+            if let onUnfollowBlog = onUnfollowBlog {
+                Button {
+                    onUnfollowBlog()
+                } label: {
+                    Label("このブログのフォローを解除", systemImage: "newspaper.circle.fill")
+                }
+            }
+        } else {
+            if let onFollowBlog = onFollowBlog {
+                Button {
+                    onFollowBlog()
+                } label: {
+                    Label("このブログをフォロー", systemImage: "newspaper.circle")
+                }
+            }
         }
 
         // 詳細を見る
@@ -95,7 +117,7 @@ struct ArticleCardView: View {
             }
         }
 
-        // 削除
+        // 削除（破壊的操作は最後に、role: .destructive で赤色表示）
         if let onDelete = onDelete {
             Button(role: .destructive) {
                 onDelete()

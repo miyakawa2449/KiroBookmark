@@ -190,7 +190,19 @@ struct HomeView: View {
                             newEntryViewModel.addToBookmark(article)
                             // Refresh Bookmark list immediately
                             viewModel.loadData()
-                        }
+                        },
+                        onFollowBlog: {
+                            Task {
+                                await viewModel.followBlog(
+                                    domain: article.domain ?? "",
+                                    articleURL: article.url ?? ""
+                                )
+                            }
+                        },
+                        onUnfollowBlog: {
+                            viewModel.unfollowBlog(domain: article.domain ?? "")
+                        },
+                        isFollowingBlog: viewModel.isFollowingBlog(domain: article.domain ?? "")
                     )
                 }
             }
@@ -331,7 +343,19 @@ struct HomeView: View {
                         onDelete: {
                             bookmarkToDelete = bookmark
                             showDeleteConfirmation = true
-                        }
+                        },
+                        onFollowBlog: {
+                            Task {
+                                await viewModel.followBlog(
+                                    domain: bookmark.domain ?? "",
+                                    articleURL: bookmark.url ?? ""
+                                )
+                            }
+                        },
+                        onUnfollowBlog: {
+                            viewModel.unfollowBlog(domain: bookmark.domain ?? "")
+                        },
+                        isFollowingBlog: viewModel.isFollowingBlog(domain: bookmark.domain ?? "")
                     )
                     .contextMenu {
                         bookmarkContextMenu(bookmark)
@@ -347,15 +371,39 @@ struct HomeView: View {
 
     private func bookmarkContextMenu(_ bookmark: ArticleBookmark) -> some View {
         Group {
+            // この記事を保存（お気に入り）
             Button {
                 viewModel.toggleFavorite(bookmark)
             } label: {
                 Label(
-                    bookmark.isFavorite ? "お気に入り解除" : "お気に入り",
-                    systemImage: bookmark.isFavorite ? "heart.slash" : "heart"
+                    bookmark.isFavorite ? "この記事の保存を解除" : "この記事を保存",
+                    systemImage: bookmark.isFavorite ? "star.slash" : "star"
                 )
             }
 
+            // このブログをフォロー
+            if viewModel.isFollowingBlog(domain: bookmark.domain ?? "") {
+                Button {
+                    viewModel.unfollowBlog(domain: bookmark.domain ?? "")
+                } label: {
+                    Label("このブログのフォローを解除", systemImage: "newspaper.circle.fill")
+                }
+            } else {
+                Button {
+                    Task {
+                        await viewModel.followBlog(
+                            domain: bookmark.domain ?? "",
+                            articleURL: bookmark.url ?? ""
+                        )
+                    }
+                } label: {
+                    Label("このブログをフォロー", systemImage: "newspaper.circle")
+                }
+            }
+
+            Divider()
+
+            // 削除（破壊的操作）
             Button(role: .destructive) {
                 viewModel.deleteBookmark(bookmark)
             } label: {

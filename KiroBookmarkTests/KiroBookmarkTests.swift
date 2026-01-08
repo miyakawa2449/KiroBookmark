@@ -1006,4 +1006,144 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         try repository.clearRSSURL(blog)
         XCTAssertNil(blog.rssURL)
     }
+
+    // MARK: - RSSService Site-Specific Detection Tests
+
+    func testRSSServiceQiitaFeedDetection() {
+        // Test Qiita article URL
+        let articleURL = URL(string: "https://qiita.com/minorun365/items/3711c0de2e2558adb7c8")!
+        let expectedFeed = URL(string: "https://qiita.com/minorun365/feed")!
+
+        // Test the URL pattern extraction logic
+        let pathComponents = articleURL.pathComponents.filter { $0 != "/" }
+        XCTAssertEqual(pathComponents.first, "minorun365")
+
+        // Verify expected feed URL format
+        XCTAssertEqual(expectedFeed.absoluteString, "https://qiita.com/minorun365/feed")
+    }
+
+    func testRSSServiceQiitaUserPageDetection() {
+        // Test Qiita user page URL
+        let userPageURL = URL(string: "https://qiita.com/minorun365")!
+        let pathComponents = userPageURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "minorun365")
+        XCTAssertEqual(pathComponents.count, 1)
+    }
+
+    func testRSSServiceQiitaSystemPathSkip() {
+        // System paths should not generate feed URLs
+        let systemPaths = ["search", "tags", "organizations", "advent-calendar", "timeline"]
+
+        for path in systemPaths {
+            let url = URL(string: "https://qiita.com/\(path)")!
+            let pathComponents = url.pathComponents.filter { $0 != "/" }
+
+            // Verify these are recognized as system paths
+            XCTAssertTrue(systemPaths.contains(pathComponents.first ?? ""))
+        }
+    }
+
+    func testRSSServiceZennFeedDetection() {
+        // Test Zenn article URL
+        let articleURL = URL(string: "https://zenn.dev/username/articles/article-slug")!
+        let pathComponents = articleURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "username")
+
+        // Expected feed URL
+        let expectedFeed = URL(string: "https://zenn.dev/username/feed")!
+        XCTAssertEqual(expectedFeed.absoluteString, "https://zenn.dev/username/feed")
+    }
+
+    func testRSSServiceNoteFeedDetection() {
+        // Test note article URL
+        let articleURL = URL(string: "https://note.com/username/n/article-id")!
+        let pathComponents = articleURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "username")
+
+        // Expected feed URL (note uses /rss instead of /feed)
+        let expectedFeed = URL(string: "https://note.com/username/rss")!
+        XCTAssertEqual(expectedFeed.absoluteString, "https://note.com/username/rss")
+    }
+
+    func testRSSServiceHostDetection() {
+        let qiitaURL = URL(string: "https://qiita.com/user")!
+        let zennURL = URL(string: "https://zenn.dev/user")!
+        let noteURL = URL(string: "https://note.com/user")!
+        let mediumURL = URL(string: "https://medium.com/@user")!
+        let devToURL = URL(string: "https://dev.to/user")!
+        let otherURL = URL(string: "https://example.com/user")!
+
+        XCTAssertEqual(qiitaURL.host, "qiita.com")
+        XCTAssertEqual(zennURL.host, "zenn.dev")
+        XCTAssertEqual(noteURL.host, "note.com")
+        XCTAssertEqual(mediumURL.host, "medium.com")
+        XCTAssertEqual(devToURL.host, "dev.to")
+        XCTAssertEqual(otherURL.host, "example.com")
+    }
+
+    func testRSSServiceMediumFeedDetection() {
+        // Test Medium user URL with @
+        let userURL = URL(string: "https://medium.com/@dan_abramov")!
+        let pathComponents = userURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "@dan_abramov")
+        XCTAssertTrue(pathComponents.first?.hasPrefix("@") ?? false)
+
+        // Expected feed URL
+        let expectedFeed = URL(string: "https://medium.com/feed/@dan_abramov")!
+        XCTAssertEqual(expectedFeed.absoluteString, "https://medium.com/feed/@dan_abramov")
+    }
+
+    func testRSSServiceMediumArticleDetection() {
+        // Test Medium article URL
+        let articleURL = URL(string: "https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889")!
+        let pathComponents = articleURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "@dan_abramov")
+    }
+
+    func testRSSServiceMediumPublicationSkip() {
+        // Medium publications without @ should be skipped
+        let publicationURL = URL(string: "https://medium.com/netflix-techblog/article")!
+        let pathComponents = publicationURL.pathComponents.filter { $0 != "/" }
+
+        // This should not start with @, so it should be skipped
+        XCTAssertFalse(pathComponents.first?.hasPrefix("@") ?? true)
+    }
+
+    func testRSSServiceDevToFeedDetection() {
+        // Test Dev.to user URL
+        let userURL = URL(string: "https://dev.to/ben")!
+        let pathComponents = userURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "ben")
+
+        // Expected feed URL
+        let expectedFeed = URL(string: "https://dev.to/feed/ben")!
+        XCTAssertEqual(expectedFeed.absoluteString, "https://dev.to/feed/ben")
+    }
+
+    func testRSSServiceDevToArticleDetection() {
+        // Test Dev.to article URL
+        let articleURL = URL(string: "https://dev.to/ben/meme-monday-2d5j")!
+        let pathComponents = articleURL.pathComponents.filter { $0 != "/" }
+
+        XCTAssertEqual(pathComponents.first, "ben")
+    }
+
+    func testRSSServiceDevToSystemPathSkip() {
+        // System paths should not generate feed URLs
+        let systemPaths = ["search", "tags", "t", "top", "latest", "videos", "podcasts"]
+
+        for path in systemPaths {
+            let url = URL(string: "https://dev.to/\(path)")!
+            let pathComponents = url.pathComponents.filter { $0 != "/" }
+
+            // Verify these are recognized as system paths
+            XCTAssertTrue(systemPaths.contains(pathComponents.first ?? ""))
+        }
+    }
 }

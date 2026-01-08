@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Kiro Sound Notification",
+  "description": "Play a sound notification when Kiro's processing ends or is interrupted and waiting for user action",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "afplay /System/Library/Sounds/Glass.aiff"
+  }
+}

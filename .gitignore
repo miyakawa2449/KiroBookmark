@@ -52,7 +52,7 @@ Thumbs.db
 
 # Claude Code settings (contains sensitive tokens)
 .claude/settings.json
-.claude/settings.json.local
+.claude/settings.local.json
 
 # Keep skills and example config public for community benefit
 # .claude/skills/ は公開する

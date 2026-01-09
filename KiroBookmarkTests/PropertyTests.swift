@@ -15,6 +15,7 @@ final class PropertyTests: XCTestCase, Sendable {
 
     // MARK: - Test Context Helper
 
+    @MainActor
     private func makeTestContext() -> NSManagedObjectContext {
         let controller = PersistenceController(inMemory: true)
         return controller.viewContext
@@ -25,6 +26,7 @@ final class PropertyTests: XCTestCase, Sendable {
     // the bookmark list should contain exactly one more item than before
     // Validates: Requirements 1.1
 
+    @MainActor
     func testProperty1_BookmarkAdditionConsistency() {
         property("Adding bookmark increases count by one") <- forAll { (urlPath: String) in
             let context = self.makeTestContext()
@@ -129,6 +131,7 @@ final class PropertyTests: XCTestCase, Sendable {
     // it should be correctly associated with the article and include a creation timestamp
     // Validates: Requirements 2.1
 
+    @MainActor
     func testProperty5_MemoAssociation() {
         property("Memo is associated with bookmark and has timestamp") <- forAll { (content: String) in
             let context = self.makeTestContext()
@@ -165,6 +168,7 @@ final class PropertyTests: XCTestCase, Sendable {
     // the system should reject the input (content should be limited)
     // Validates: Requirements 2.2
 
+    @MainActor
     func testProperty6_MemoCharacterLimit() {
         property("Memo content respects 300 char limit") <- forAll { (text: String) in
             let limitedContent = String(text.prefix(300))
@@ -177,6 +181,7 @@ final class PropertyTests: XCTestCase, Sendable {
     // the tag should be correctly associated and retrievable
     // Validates: Requirements 3.1
 
+    @MainActor
     func testProperty11_TagAssociation() {
         property("Tag is associated with bookmark") <- forAll { (tagName: String) in
             let context = self.makeTestContext()
@@ -212,6 +217,7 @@ final class PropertyTests: XCTestCase, Sendable {
     // all tags should be associated with the article
     // Validates: Requirements 3.2
 
+    @MainActor
     func testProperty12_MultipleTagsAssociation() {
         property("Multiple tags associate with bookmark") <- forAll { (names: [String]) in
             let context = self.makeTestContext()
@@ -717,9 +723,13 @@ final class PropertyTests: XCTestCase, Sendable {
         let context = self.makeTestContext()
         let bookmarkRepository = BookmarkRepository(context: context)
         let memoRepository = MemoRepository(context: context)
+        let favoriteBlogRepository = FavoriteBlogRepository(context: context)
+        let rssService = RSSService()
         let viewModel = HomeViewModel(
             bookmarkRepository: bookmarkRepository,
-            memoRepository: memoRepository
+            memoRepository: memoRepository,
+            favoriteBlogRepository: favoriteBlogRepository,
+            rssService: rssService
         )
 
         // Create bookmarks with different memo types
@@ -763,20 +773,20 @@ final class PropertyTests: XCTestCase, Sendable {
         XCTAssertFalse(viewModel.isSideMenuOpen)
 
         // Test menu item counts
-        XCTAssertEqual(viewModel.getMenuItemCount(.favorite), 1)
-        XCTAssertEqual(viewModel.getMenuItemCount(.idea), 1)
-        XCTAssertEqual(viewModel.getMenuItemCount(.todo), 1)
-        XCTAssertEqual(viewModel.getMenuItemCount(.thought), 1)
-        XCTAssertEqual(viewModel.getMenuItemCount(.other), 0)
+        XCTAssertEqual(viewModel.getMenuItemCount(SideMenuItem.favorite), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(SideMenuItem.idea), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(SideMenuItem.todo), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(SideMenuItem.thought), 1)
+        XCTAssertEqual(viewModel.getMenuItemCount(SideMenuItem.other), 0)
 
         // Test filtering by favorite
-        viewModel.selectMenuItem(.favorite)
-        XCTAssertEqual(viewModel.selectedMenuItem, .favorite)
+        viewModel.selectMenuItem(SideMenuItem.favorite)
+        XCTAssertEqual(viewModel.selectedMenuItem, SideMenuItem.favorite)
         XCTAssertEqual(viewModel.filteredBookmarks.count, 1)
         XCTAssertEqual(viewModel.navigationTitle, SideMenuItem.favorite.displayName)
 
         // Test filtering by memo type
-        viewModel.selectMenuItem(.idea)
+        viewModel.selectMenuItem(SideMenuItem.idea)
         XCTAssertEqual(viewModel.filteredBookmarks.count, 1)
         XCTAssertEqual(viewModel.filteredBookmarks.first?.url, "https://example.com/1")
 

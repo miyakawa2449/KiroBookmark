@@ -13,6 +13,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
 
     // MARK: - Test Context Helper
 
+    @MainActor
     private func makeTestContext() -> NSManagedObjectContext {
         let controller = PersistenceController(inMemory: true)
         return controller.viewContext
@@ -20,6 +21,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
 
     // MARK: - ArticleBookmark Tests
 
+    @MainActor
     func testArticleBookmarkCreation() throws {
         let context = makeTestContext()
 
@@ -43,6 +45,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertEqual(results.first?.readingStatus, "unread")
     }
 
+    @MainActor
     func testTweetMemoCreation() throws {
         let context = makeTestContext()
 
@@ -65,6 +68,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertEqual(results.first?.isQuote, false)
     }
 
+    @MainActor
     func testQuoteMemoCreation() throws {
         let context = makeTestContext()
 
@@ -90,6 +94,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertEqual(results.first?.sourceURL, "https://example.com/article")
     }
 
+    @MainActor
     func testTagCreation() throws {
         let context = makeTestContext()
 
@@ -107,6 +112,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertEqual(results.first?.name, "Swift")
     }
 
+    @MainActor
     func testBookmarkMemoRelationship() throws {
         let context = makeTestContext()
 
@@ -135,6 +141,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertTrue(memo.bookmark === bookmark)
     }
 
+    @MainActor
     func testBookmarkTagRelationship() throws {
         let context = makeTestContext()
 
@@ -162,6 +169,7 @@ final class KiroBookmarkTests: XCTestCase, Sendable {
         XCTAssertEqual(bookmarks.count, 1)
     }
 
+    @MainActor
     func testBookmarkFavoriteToggle() throws {
         let context = makeTestContext()
 

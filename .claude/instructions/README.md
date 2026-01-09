@@ -7,13 +7,24 @@
 ```
 .claude/instructions/
 ├── README.md              # このファイル
-├── task6-fixes/           # Task6 ユーザテスト結果に基づく修正
-│   ├── index.md           # 全体ガイド（最初に読むファイル）
+├── concurrency-fixes/     # Swift並行処理警告修正（完了）
+│   └── index.md
+├── article-preview-improvement/  # 記事プレビューUI改善（完了）
+│   ├── index.md
+│   ├── task1-card-tap-action.md
+│   ├── task2-toolbar-ui.md
+│   ├── task3-toolbar-actions.md
+│   ├── task4-long-press-menu.md
+│   └── task5-detail-view-adjustment.md
+├── task6-fixes/           # Task6 ユーザテスト結果に基づく修正（完了）
+│   ├── index.md
 │   ├── fix1-swipe-sensitivity.md
 │   ├── fix2-remove-bookmark-button.md
 │   ├── fix3-quote-character-limit.md
 │   ├── fix4-url-validation.md
 │   └── all-fixes-combined.md
+├── bookmark-toast-notification.md  # トースト通知機能（完了）
+├── new-entry-bookmark-separation.md  # New Entry/Bookmark分離（完了）
 └── archived/              # 完了した指示書
     ├── initial-project-setup.md
     └── swipe-and-tap-gesture-fixes.md

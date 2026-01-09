@@ -161,6 +161,55 @@
 - **プロトコル名**: `Protocol` サフィックス（`BookmarkManagerProtocol`）
 - **禁止**: 意味のない名前（`temp`, `data`, `a`）
 
+### Swift Concurrency Best Practices (2026-01-09追加)
+- **@MainActor**: UIに関連するクラス・プロパティに必須
+  - ViewModel: すべて`@MainActor`で隔離
+  - PersistenceController: `shared`と`viewContext`を`@MainActor`で隔離
+- **Repository/Service初期化**: 2段階初期化パターンを使用
+  ```swift
+  // テスト用: 依存性注入可能
+  init(context: NSManagedObjectContext) {
+      self.context = context
+  }
+  
+  // 本番用: デフォルト実装
+  @MainActor
+  convenience init() {
+      self.init(context: PersistenceController.shared.viewContext)
+  }
+  ```
+- **ViewModel初期化**: 同様の2段階パターン
+  ```swift
+  @MainActor
+  final class AddBookmarkViewModel: ObservableObject {
+      init(bookmarkRepository: BookmarkRepositoryProtocol, ...) {
+          // 初期化処理
+      }
+      
+      @MainActor
+      convenience init() {
+          self.init(bookmarkRepository: BookmarkRepository(), ...)
+      }
+  }
+  ```
+- **Timerクロージャ**: `guard let self`を使用
+  ```swift
+  Timer.scheduledTimer(...) { [weak self] _ in
+      guard let self = self else { return }
+      Task { @MainActor in
+          self.method()
+      }
+  }
+  ```
+- **テストメソッド**: Core Dataを使用する場合は`@MainActor`を追加
+  ```swift
+  @MainActor
+  func testArticleBookmarkCreation() throws {
+      let context = makeTestContext()
+      // テストコード
+  }
+  ```
+
 ### SwiftUI Best Practices
 - **@State**: View内の一時的な状態のみ
 - **@StateObject**: ViewModelの初期化時のみ
@@ -199,6 +248,10 @@
 - **Phase 1B の機能**を Phase 1A で実装しない
 - **機密情報**（APIキー等）をコードに埋め込まない
 - **Core Data モデル**を無断で変更しない
+- **並行処理パターン**を無視した実装をしない（2026-01-09追加）
+  - Repository/Serviceは必ず2段階初期化パターンを使用
+  - ViewModelは必ず`@MainActor`で隔離
+  - Timerクロージャでは`guard let self`を使用
 
 ---
 

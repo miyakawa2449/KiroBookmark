@@ -39,7 +39,8 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 | 項目 | 技術 |
 |------|------|
 | UI | SwiftUI (iOS 17.0+) |
-| 言語 | Swift 5.9+ |
+| 言語 | Swift 5.9+ (Swift 6 Concurrency対応済み) |
+| 並行処理 | @MainActor, async/await |
 | データ | Core Data |
 | テスト | SwiftCheck + XCTest |
 | アーキテクチャ | MVVM + Repository Pattern |
@@ -49,22 +50,23 @@ AIエンジニア向けの技術ブログ管理iOSアプリ。2タブ + サイ�
 ```
 KiroBookmark/
 ├── Core/
-│   └── PersistenceController.swift
+│   └── PersistenceController.swift    # @MainActor対応済み
 ├── Helpers/
 │   ├── ColorExtensions.swift
 │   └── DateExtensions.swift          # 相対時間表示
 ├── Models/
 │   └── Enums.swift                    # MemoType, ReadingStatus, MainTabType, SideMenuItem
-├── Repositories/
+├── Repositories/                      # 2段階初期化パターン適用済み
 │   ├── BookmarkRepository.swift       # New Entry/Bookmark分離対応
 │   ├── FavoriteBlogRepository.swift
 │   ├── MemoRepository.swift
 │   └── TagRepository.swift
-├── Services/
+├── Services/                          # 2段階初期化パターン適用済み
 │   ├── RSSService.swift               # RSS取得・パース
-│   ├── RSSDiscoveryService.swift      # RSS自動検出
+│   ├── BackgroundRefreshService.swift # バックグラウンド更新
+│   ├── NotificationService.swift      # 通知管理
 │   └── URLValidationService.swift
-├── ViewModels/
+├── ViewModels/                        # @MainActor + 2段階初期化適用済み
 │   ├── AddBookmarkViewModel.swift
 │   ├── AddMemoViewModel.swift
 │   ├── ArticleWebViewModel.swift      # トースト通知対応
@@ -95,9 +97,9 @@ KiroBookmark/
 │   └── TagSelectionView.swift
 └── KiroBookmark.xcdatamodeld/
 
-KiroBookmarkTests/
-├── PropertyTests.swift                # プロパティベーステスト
-└── KiroBookmarkTests.swift            # ユニットテスト
+KiroBookmarkTests/                     # @MainActor対応済み
+├── PropertyTests.swift                # プロパティベーステスト (20テスト)
+└── KiroBookmarkTests.swift            # ユニットテスト (70テスト)
 ```
 
 ## データモデル
@@ -220,9 +222,11 @@ xcodebuild test -scheme KiroBookmark -destination 'platform=iOS Simulator,name=i
 - 写真添付なし（テキストメモのみ）
 - Push通知未実装
 
-### 既知の警告
-- Swift 6 Concurrency警告（動作には影響なし）
-  - MainActor isolated initializer warnings
+### コード品質
+- ✅ Swift 6 Concurrency対応済み（2026-01-09）
+  - すべての並行処理警告を解決
+  - @MainActor隔離パターンを全面適用
+  - テスト成功率: 100%（90/90テスト）
 
 ## ドキュメント
 

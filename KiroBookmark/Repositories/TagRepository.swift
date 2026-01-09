@@ -60,8 +60,13 @@ final class TagRepository: TagRepositoryProtocol {
 
     // MARK: - Initialization
 
-    init(context: NSManagedObjectContext = PersistenceController.shared.viewContext) {
+    init(context: NSManagedObjectContext) {
         self.context = context
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(context: PersistenceController.shared.viewContext)
     }
 
     // MARK: - Create

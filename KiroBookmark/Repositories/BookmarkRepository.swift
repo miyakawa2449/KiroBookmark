@@ -42,8 +42,13 @@ final class BookmarkRepository: BookmarkRepositoryProtocol {
 
     private let context: NSManagedObjectContext
 
-    init(context: NSManagedObjectContext = PersistenceController.shared.viewContext) {
+    init(context: NSManagedObjectContext) {
         self.context = context
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(context: PersistenceController.shared.viewContext)
     }
 
     // MARK: - Create

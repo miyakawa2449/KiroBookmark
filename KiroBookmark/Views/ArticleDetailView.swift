@@ -366,11 +366,21 @@ final class ArticleDetailViewModel: ObservableObject {
     private let memoRepository: MemoRepositoryProtocol
     private let tagRepository: TagRepositoryProtocol
 
+    @MainActor
+    convenience init(bookmark: ArticleBookmark) {
+        self.init(
+            bookmark: bookmark,
+            bookmarkRepository: BookmarkRepository(),
+            memoRepository: MemoRepository(),
+            tagRepository: TagRepository()
+        )
+    }
+    
     init(
         bookmark: ArticleBookmark,
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        memoRepository: MemoRepositoryProtocol = MemoRepository(),
-        tagRepository: TagRepositoryProtocol = TagRepository()
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        memoRepository: MemoRepositoryProtocol,
+        tagRepository: TagRepositoryProtocol
     ) {
         self.bookmark = bookmark
         self.bookmarkRepository = bookmarkRepository

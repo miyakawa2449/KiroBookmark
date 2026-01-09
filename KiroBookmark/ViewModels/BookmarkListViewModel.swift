@@ -25,11 +25,19 @@ final class BookmarkListViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository()
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.favoriteBlogRepository = favoriteBlogRepository
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            bookmarkRepository: BookmarkRepository(),
+            favoriteBlogRepository: FavoriteBlogRepository()
+        )
     }
 
     // MARK: - Public Methods

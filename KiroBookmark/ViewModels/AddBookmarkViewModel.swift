@@ -42,15 +42,25 @@ final class AddBookmarkViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        urlValidationService: URLValidationServiceProtocol = URLValidationService(),
-        rssService: RSSServiceProtocol = RSSService()
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol,
+        urlValidationService: URLValidationServiceProtocol,
+        rssService: RSSServiceProtocol
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.favoriteBlogRepository = favoriteBlogRepository
         self.urlValidationService = urlValidationService
         self.rssService = rssService
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            bookmarkRepository: BookmarkRepository(),
+            favoriteBlogRepository: FavoriteBlogRepository(),
+            urlValidationService: URLValidationService(),
+            rssService: RSSService()
+        )
     }
 
     // MARK: - Computed Properties
@@ -171,7 +181,7 @@ final class AddBookmarkViewModel: ObservableObject {
     private func detectRSSForExistingBlog(domain: String, articleURL: String) async {
         guard let blog = try? favoriteBlogRepository.fetchByDomain(domain),
               blog.rssURL == nil || blog.rssURL?.isEmpty == true,
-              let url = URL(string: articleURL) else {
+              URL(string: articleURL) != nil else {
             return
         }
 

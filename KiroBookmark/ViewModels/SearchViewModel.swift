@@ -70,12 +70,20 @@ final class SearchViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        context: NSManagedObjectContext = PersistenceController.shared.viewContext
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        context: NSManagedObjectContext
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.context = context
         loadRecentSearches()
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            bookmarkRepository: BookmarkRepository(),
+            context: PersistenceController.shared.viewContext
+        )
     }
 
     // MARK: - Search

@@ -44,8 +44,13 @@ final class TagListViewModel: ObservableObject {
 
     // MARK: - Initialization
 
-    init(tagRepository: TagRepositoryProtocol = TagRepository()) {
+    init(tagRepository: TagRepositoryProtocol) {
         self.tagRepository = tagRepository
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(tagRepository: TagRepository())
     }
 
     // MARK: - Load Methods

@@ -50,15 +50,25 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        memoRepository: MemoRepositoryProtocol = MemoRepository(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        rssService: RSSService = RSSService()
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        memoRepository: MemoRepositoryProtocol,
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol,
+        rssService: RSSService
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.memoRepository = memoRepository
         self.favoriteBlogRepository = favoriteBlogRepository
         self.rssService = rssService
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            bookmarkRepository: BookmarkRepository(),
+            memoRepository: MemoRepository(),
+            favoriteBlogRepository: FavoriteBlogRepository(),
+            rssService: RSSService()
+        )
     }
 
     // MARK: - Data Loading

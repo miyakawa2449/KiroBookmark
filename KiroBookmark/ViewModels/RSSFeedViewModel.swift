@@ -35,11 +35,19 @@ final class RSSFeedViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        rssService: RSSServiceProtocol = RSSService()
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol,
+        rssService: RSSServiceProtocol
     ) {
         self.favoriteBlogRepository = favoriteBlogRepository
         self.rssService = rssService
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            favoriteBlogRepository: FavoriteBlogRepository(),
+            rssService: RSSService()
+        )
     }
 
     // MARK: - Data Loading

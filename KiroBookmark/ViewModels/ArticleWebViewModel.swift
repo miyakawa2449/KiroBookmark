@@ -59,11 +59,19 @@ final class ArticleWebViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        memoRepository: MemoRepositoryProtocol = MemoRepository()
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        memoRepository: MemoRepositoryProtocol
     ) {
         self.bookmarkRepository = bookmarkRepository
         self.memoRepository = memoRepository
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            bookmarkRepository: BookmarkRepository(),
+            memoRepository: MemoRepository()
+        )
     }
 
     // MARK: - Configuration
@@ -186,8 +194,9 @@ final class ArticleWebViewModel: ObservableObject {
     func handleScrollEnd() {
         scrollTimer?.invalidate()
         scrollTimer = Timer.scheduledTimer(withTimeInterval: Self.scrollStopDelay, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
-                self?.onScrollStopped()
+                self.onScrollStopped()
             }
         }
     }
@@ -201,8 +210,9 @@ final class ArticleWebViewModel: ObservableObject {
 
             // Auto-hide after duration
             Timer.scheduledTimer(withTimeInterval: Self.bookmarkButtonShowDuration, repeats: false) { [weak self] _ in
+                guard let self = self else { return }
                 Task { @MainActor in
-                    self?.showBookmarkButton = false
+                    self.showBookmarkButton = false
                 }
             }
         }

@@ -34,17 +34,28 @@ final class NewEntryViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        rssService: RSSServiceProtocol = RSSService(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        notificationService: NotificationServiceProtocol = NotificationService(),
-        userDefaults: UserDefaults = .standard
+        rssService: RSSServiceProtocol,
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol,
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        notificationService: NotificationServiceProtocol,
+        userDefaults: UserDefaults
     ) {
         self.rssService = rssService
         self.favoriteBlogRepository = favoriteBlogRepository
         self.bookmarkRepository = bookmarkRepository
         self.notificationService = notificationService
         self.userDefaults = userDefaults
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            rssService: RSSService(),
+            favoriteBlogRepository: FavoriteBlogRepository(),
+            bookmarkRepository: BookmarkRepository(),
+            notificationService: NotificationService(),
+            userDefaults: .standard
+        )
     }
 
     // MARK: - Computed Properties

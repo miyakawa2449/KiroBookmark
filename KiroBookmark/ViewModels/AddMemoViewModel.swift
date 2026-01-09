@@ -63,8 +63,13 @@ final class AddMemoViewModel: ObservableObject {
 
     // MARK: - Initialization
 
-    init(memoRepository: MemoRepositoryProtocol = MemoRepository()) {
+    init(memoRepository: MemoRepositoryProtocol) {
         self.memoRepository = memoRepository
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(memoRepository: MemoRepository())
     }
 
     // MARK: - Configuration

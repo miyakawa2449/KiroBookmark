@@ -8,6 +8,7 @@
 import CoreData
 
 struct PersistenceController {
+    @MainActor
     static let shared = PersistenceController()
 
     let container: NSPersistentContainer
@@ -82,6 +83,7 @@ struct PersistenceController {
 
     // MARK: - Convenience Methods
 
+    @MainActor
     var viewContext: NSManagedObjectContext {
         container.viewContext
     }

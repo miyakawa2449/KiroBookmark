@@ -37,11 +37,19 @@ final class NotificationService: NotificationServiceProtocol {
     // MARK: - Initialization
 
     init(
-        notificationCenter: UNUserNotificationCenter = .current(),
-        userDefaults: UserDefaults = .standard
+        notificationCenter: UNUserNotificationCenter,
+        userDefaults: UserDefaults
     ) {
         self.notificationCenter = notificationCenter
         self.userDefaults = userDefaults
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            notificationCenter: .current(),
+            userDefaults: .standard
+        )
     }
 
     // MARK: - Authorization

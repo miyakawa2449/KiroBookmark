@@ -44,17 +44,28 @@ final class BackgroundRefreshService: BackgroundRefreshServiceProtocol {
     // MARK: - Initialization
 
     init(
-        rssService: RSSServiceProtocol = RSSService(),
-        notificationService: NotificationServiceProtocol = NotificationService(),
-        favoriteBlogRepository: FavoriteBlogRepositoryProtocol = FavoriteBlogRepository(),
-        bookmarkRepository: BookmarkRepositoryProtocol = BookmarkRepository(),
-        userDefaults: UserDefaults = .standard
+        rssService: RSSServiceProtocol,
+        notificationService: NotificationServiceProtocol,
+        favoriteBlogRepository: FavoriteBlogRepositoryProtocol,
+        bookmarkRepository: BookmarkRepositoryProtocol,
+        userDefaults: UserDefaults
     ) {
         self.rssService = rssService
         self.notificationService = notificationService
         self.favoriteBlogRepository = favoriteBlogRepository
         self.bookmarkRepository = bookmarkRepository
         self.userDefaults = userDefaults
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(
+            rssService: RSSService(),
+            notificationService: NotificationService(),
+            favoriteBlogRepository: FavoriteBlogRepository(),
+            bookmarkRepository: BookmarkRepository(),
+            userDefaults: .standard
+        )
     }
 
     // MARK: - Task Registration
@@ -152,7 +163,9 @@ final class BackgroundRefreshService: BackgroundRefreshServiceProtocol {
     }
 
     private func saveNewArticles(_ articles: [RSSArticle]) async {
-        let context = PersistenceController.shared.newBackgroundContext()
+        let context = await MainActor.run {
+            PersistenceController.shared.newBackgroundContext()
+        }
 
         await context.perform {
             let repository = BookmarkRepository(context: context)

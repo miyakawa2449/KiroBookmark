@@ -22,8 +22,13 @@ final class RSSService: RSSServiceProtocol {
 
     private let urlSession: URLSession
 
-    init(urlSession: URLSession = .shared) {
+    init(urlSession: URLSession) {
         self.urlSession = urlSession
+    }
+    
+    @MainActor
+    convenience init() {
+        self.init(urlSession: .shared)
     }
 
     // MARK: - Feed Detection
